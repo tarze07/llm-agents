@@ -25,6 +25,7 @@
     --llm: #8ca2f5; --llm-soft: #222a47; --tool: #5fc792; --tool-soft: #1b3428;
     --gate: #e3ad57; --gate-soft: #3a2e19; --human: #d58ae6; --human-soft: #3a2341;
     --io: #b8b6ae; --io-soft: #2c2b28; --err: #f07070; --err-soft: #432222; --ok: #5fc792;
+    color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -33,6 +34,7 @@
   --llm: #8ca2f5; --llm-soft: #222a47; --tool: #5fc792; --tool-soft: #1b3428;
   --gate: #e3ad57; --gate-soft: #3a2e19; --human: #d58ae6; --human-soft: #3a2341;
   --io: #b8b6ae; --io-soft: #2c2b28; --err: #f07070; --err-soft: #432222; --ok: #5fc792;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -42,7 +44,7 @@ header.top h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
 header.top p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
 .theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
 .layout { max-width: 1320px; margin: 0 auto; padding: 8px 16px 40px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
-nav.patterns { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 12px; align-self: start; }
+nav.patterns { display: flex; flex-direction: column; gap: 6px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); align-self: start; }
 nav.patterns button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--ink); font: inherit; }
 nav.patterns button:hover { border-color: var(--line-strong); }
 nav.patterns button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
@@ -974,7 +976,7 @@ function selectPattern(id) {
   renderParams(S.pattern);
   resetSim();
   try { localStorage.setItem('agent-sim-pattern', S.pattern.id); } catch (e) { /* brak dostępu */ }
-  if (location.hash.slice(1) !== S.pattern.id) history.replaceState(null, '', '#' + S.pattern.id);
+  try { if (location.hash.slice(1) !== S.pattern.id) history.replaceState(null, '', '#' + S.pattern.id); } catch (e) { /* ramka bez historii */ }
 }
 
 function buildNav() {
