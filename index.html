@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Symulator wzorców agentowych</title>
+<style>
+:root {
+  --bg: #f5f4f0; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a65; --line: #dcd9d1; --line-strong: #b9b5ab;
+  --accent: #c4572e; --accent-ink: #ffffff;
+  --llm: #3b5bdb; --llm-soft: #e4e9fb;
+  --tool: #2b8a5a; --tool-soft: #dcf0e5;
+  --gate: #b7791f; --gate-soft: #f8ecd4;
+  --human: #9c36b5; --human-soft: #f3e2f7;
+  --io: #5f5e59; --io-soft: #ebeae5;
+  --err: #c92a2a; --err-soft: #fbe1e1;
+  --ok: #2b8a5a;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161614; --panel: #201f1d; --ink: #ecebe6; --muted: #a09e97; --line: #36352f; --line-strong: #55534b;
+    --accent: #e8794d; --accent-ink: #1a1a18;
+    --llm: #8ca2f5; --llm-soft: #222a47; --tool: #5fc792; --tool-soft: #1b3428;
+    --gate: #e3ad57; --gate-soft: #3a2e19; --human: #d58ae6; --human-soft: #3a2341;
+    --io: #b8b6ae; --io-soft: #2c2b28; --err: #f07070; --err-soft: #432222; --ok: #5fc792;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161614; --panel: #201f1d; --ink: #ecebe6; --muted: #a09e97; --line: #36352f; --line-strong: #55534b;
+  --accent: #e8794d; --accent-ink: #1a1a18;
+  --llm: #8ca2f5; --llm-soft: #222a47; --tool: #5fc792; --tool-soft: #1b3428;
+  --gate: #e3ad57; --gate-soft: #3a2e19; --human: #d58ae6; --human-soft: #3a2341;
+  --io: #b8b6ae; --io-soft: #2c2b28; --err: #f07070; --err-soft: #432222; --ok: #5fc792;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+header.top { max-width: 1320px; margin: 0 auto; padding: 22px 16px 8px; display: flex; gap: 16px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
+header.top h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+header.top p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.theme-btn { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.layout { max-width: 1320px; margin: 0 auto; padding: 8px 16px 40px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
+nav.patterns { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 12px; align-self: start; }
+nav.patterns button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; color: var(--ink); font: inherit; }
+nav.patterns button:hover { border-color: var(--line-strong); }
+nav.patterns button[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+nav.patterns .n { font-family: var(--mono); color: var(--muted); font-size: 12px; margin-right: 6px; }
+nav.patterns .t { font-weight: 600; font-size: 14px; }
+nav.patterns .kind { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+nav .group { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 8px 2px 0; }
+main { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.intro { padding: 16px 18px; }
+.intro h2 { margin: 0 0 4px; font-size: 19px; }
+.intro p { margin: 0; color: var(--muted); max-width: 80ch; }
+.stage { padding: 6px; }
+.stage svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 4px 12px 10px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 14px; }
+.btn { border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; min-width: 140px; }
+.btn.primary:hover { filter: brightness(1.05); }
+.ctl { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.ctl input[type=number] { width: 72px; font: inherit; padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); }
+.spacer { flex: 1; }
+.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 20px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.param { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.param b { color: var(--ink); font-weight: 600; }
+.param select { font: inherit; font-size: 13px; padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); }
+.param.check { flex-direction: row; align-items: center; gap: 8px; }
+input[type=range] { accent-color: var(--accent); width: 100%; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; }
+.panel-h { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+.panel-h h3 { margin: 0; font-size: 14px; }
+.panel-h small { color: var(--muted); font-size: 12px; }
+#log { height: 420px; overflow-y: auto; padding: 8px 10px 12px; font-size: 13px; }
+.entry { display: grid; grid-template-columns: 52px 92px minmax(0, 1fr); gap: 8px; padding: 5px 4px; border-bottom: 1px dashed var(--line); animation: fade .25s ease; }
+.entry .time { font-family: var(--mono); font-size: 11.5px; color: var(--muted); padding-top: 2px; }
+.entry .tag { font-family: var(--mono); font-size: 10.5px; font-weight: 700; letter-spacing: .04em; padding: 2px 6px; border-radius: 4px; align-self: start; text-align: center; background: var(--io-soft); color: var(--io); }
+.entry .who { font-weight: 600; margin-right: 4px; }
+.t-user .tag { background: var(--human-soft); color: var(--human); }
+.t-llm .tag, .t-thought .tag { background: var(--llm-soft); color: var(--llm); }
+.t-action .tag, .t-tool .tag, .t-obs .tag { background: var(--tool-soft); color: var(--tool); }
+.t-warn .tag, .t-ask .tag { background: var(--gate-soft); color: var(--gate); }
+.t-error .tag { background: var(--err-soft); color: var(--err); }
+.t-result .tag { background: var(--accent); color: var(--accent-ink); }
+.t-result .text { font-weight: 600; }
+.t-obs .text { font-family: var(--mono); font-size: 12.5px; }
+.ask-btns { display: flex; gap: 8px; margin-top: 6px; }
+.ask-btns .btn { padding: 4px 12px; font-size: 13px; }
+.empty { color: var(--muted); padding: 30px 10px; text-align: center; }
+@keyframes fade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-radius: 0 0 12px 12px; overflow: hidden; }
+.metric { background: var(--panel); padding: 10px 14px; }
+.metric .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.metric .l { font-size: 12px; color: var(--muted); }
+#extra { padding: 12px 14px; font-size: 13px; }
+#extra:empty::before { content: "Brak dodatkowych danych dla tego wzorca."; color: var(--muted); }
+.plan { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.plan li { display: flex; gap: 8px; align-items: baseline; }
+.plan .st { font-family: var(--mono); width: 18px; flex: none; text-align: center; }
+.st-run { color: var(--llm); } .st-ok { color: var(--ok); } .st-err { color: var(--err); } .st-todo { color: var(--muted); }
+.bar { height: 8px; background: var(--io-soft); border-radius: 4px; overflow: hidden; margin: 4px 0 10px; }
+.bar > div { height: 100%; background: var(--llm); transition: width .4s; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.when { padding: 12px 14px 14px; font-size: 13.5px; }
+.when ul { margin: 6px 0 10px; padding-left: 18px; }
+.when p { margin: 0; color: var(--muted); }
+.when h4 { margin: 0; font-size: 13px; }
+
+/* SVG */
+.edge { fill: none; stroke: var(--line-strong); stroke-width: 1.6; }
+.edge.flow { stroke: var(--accent); stroke-width: 2.4; }
+.edge-label { font: 11px var(--sans); fill: var(--muted); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; }
+#arr path { fill: var(--line-strong); }
+.node { transition: opacity .3s; }
+.node rect.box { fill: var(--k-soft); stroke: var(--k); stroke-width: 1.5; transition: stroke-width .2s; }
+.node .title { font: 600 13px var(--sans); fill: var(--ink); }
+.node .sub { font: 11px var(--sans); fill: var(--muted); }
+.node .dot { fill: transparent; }
+.node.active rect.box { stroke-width: 3.2; animation: pulse 1s ease-in-out infinite; }
+.node.active .dot { fill: var(--k); }
+.node.done .dot { fill: var(--ok); }
+.node.wait rect.box { stroke-dasharray: 5 4; stroke-width: 2.4; }
+.node.wait .dot { fill: var(--gate); }
+.node.error rect.box { stroke: var(--err); fill: var(--err-soft); stroke-width: 2.4; }
+.node.error .dot { fill: var(--err); }
+.node.off { opacity: .22; }
+@keyframes pulse { 50% { stroke-opacity: .45; } }
+.k-llm { --k: var(--llm); --k-soft: var(--llm-soft); }
+.k-tool { --k: var(--tool); --k-soft: var(--tool-soft); }
+.k-gate { --k: var(--gate); --k-soft: var(--gate-soft); }
+.k-human { --k: var(--human); --k-soft: var(--human-soft); }
+.k-io { --k: var(--io); --k-soft: var(--io-soft); }
+.token circle { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
+.token text { font: 600 11.5px var(--sans); fill: var(--ink); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; }
+.chart .thr { stroke: var(--accent); stroke-dasharray: 4 3; }
+.chart text { font: 10.5px var(--sans); fill: var(--muted); }
+.chart rect.ok { fill: var(--ok); } .chart rect.no { fill: var(--llm); }
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.patterns { position: static; flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  nav.patterns button { flex: none; }
+  nav .group { display: none; }
+  .cols { grid-template-columns: 1fr; }
+  #log { height: 340px; }
+}
+@media (max-width: 560px) {
+  .entry { grid-template-columns: 44px minmax(0, 1fr); }
+  .entry .tag { grid-column: 2; justify-self: start; }
+  .entry .text { grid-column: 1 / -1; }
+  .btn.primary { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .node.active rect.box, .entry { animation: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Symulator wzorców agentowych</h1>
+    <p>Interaktywne symulacje typowych architektur systemów z LLM — od prostych workflow po autonomicznego agenta.</p>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Motyw: auto</button>
+</header>
+
+<div class="layout">
+  <nav class="patterns" id="nav" role="tablist" aria-label="Wzorce"></nav>
+
+  <main>
+    <section class="card intro">
+      <h2 id="pName"></h2>
+      <p id="pDesc"></p>
+    </section>
+
+    <section class="card stage">
+      <svg id="svg" viewBox="0 0 900 470" role="img" aria-label="Diagram przepływu"></svg>
+      <div class="legend">
+        <span style="--c:var(--llm)">Wywołanie LLM</span>
+        <span style="--c:var(--tool)">Narzędzie / kod</span>
+        <span style="--c:var(--gate)">Bramka (reguły)</span>
+        <span style="--c:var(--human)">Człowiek</span>
+        <span style="--c:var(--io)">Wejście / wyjście</span>
+        <span style="--c:var(--accent)">Wiadomość w ruchu</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="controls">
+        <button class="btn primary" id="playBtn" type="button">▶ Uruchom</button>
+        <button class="btn" id="stepBtn" type="button" title="Wykonaj do następnego wpisu w logu">Krok ⏭</button>
+        <button class="btn" id="resetBtn" type="button">Reset</button>
+        <label class="ctl">Prędkość <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1" style="width:110px"> <b id="speedV">1×</b></label>
+        <span class="spacer"></span>
+        <label class="ctl">Ziarno losowości <input type="number" id="seed" value="7" min="1"></label>
+        <button class="btn" id="diceBtn" type="button" title="Losuj ziarno">🎲</button>
+      </div>
+      <div class="params" id="params"></div>
+    </section>
+
+    <div class="cols">
+      <section class="card">
+        <div class="panel-h"><h3>Ślad wykonania</h3><small>czas symulowany · typ · aktor</small></div>
+        <div id="log"><div class="empty">Naciśnij „Uruchom”, aby rozpocząć symulację.</div></div>
+      </section>
+      <div class="side">
+        <section class="card">
+          <div class="panel-h"><h3>Metryki</h3><small>wartości umowne</small></div>
+          <div class="metrics">
+            <div class="metric"><div class="v" id="mCalls">0</div><div class="l">wywołania LLM</div></div>
+            <div class="metric"><div class="v" id="mTok">0</div><div class="l">tokeny</div></div>
+            <div class="metric"><div class="v" id="mTime">0.0 s</div><div class="l">czas (zegar ścienny)</div></div>
+            <div class="metric"><div class="v" id="mCost">$0.000</div><div class="l">koszt</div></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="panel-h"><h3 id="extraTitle">Stan</h3></div>
+          <div id="extra"></div>
+        </section>
+        <section class="card when" id="when"></section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const PRICE = { big: 0.015, small: 0.0015 }; // $ za 1k tokenów (umowne)
+const NODE_W = 120, NODE_H = 50;
+
+/* ------------------------------------------------------------------ */
+/* Silnik symulacji                                                    */
+/* ------------------------------------------------------------------ */
+class Cancel extends Error {}
+const S = {
+  pattern: null, gen: 0, running: false, paused: false, stepping: false, speed: 1,
+  nodes: {}, edges: {}, params: {}, M: null, main: null, askCancel: null,
+};
+const sleepRaw = (ms) => new Promise((r) => setTimeout(r, ms));
+const nextFrame = () => new Promise((r) => (document.hidden ? setTimeout(r, 16) : requestAnimationFrame(r)));
+
+// Zwraca upływ czasu animacji (ms * prędkość), respektuje pauzę i anulowanie.
+async function tick() {
+  const g = S.gen;
+  let t0 = performance.now();
+  await nextFrame();
+  while (S.paused) {
+    if (g !== S.gen) throw new Cancel();
+    await sleepRaw(50);
+    t0 = performance.now() - 16;
+  }
+  if (g !== S.gen) throw new Cancel();
+  return Math.min(100, performance.now() - t0) * S.speed;
+}
+async function wait(ms) { let left = ms; while (left > 0) left -= await tick(); }
+const realDur = (simMs) => Math.max(380, Math.min(1500, simMs * 0.4));
+
+function clipRect(c, toward) {
+  const dx = toward.x - c.x, dy = toward.y - c.y;
+  if (!dx && !dy) return { x: c.x, y: c.y };
+  const hw = NODE_W / 2 + 4, hh = NODE_H / 2 + 4;
+  const s = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
+  return { x: c.x + dx * s, y: c.y + dy * s };
+}
+function edgeGeometry(a, b, bend) {
+  if (!bend) {
+    const s = clipRect(a, b), e = clipRect(b, a);
+    return `M${s.x},${s.y} L${e.x},${e.y}`;
+  }
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+  const ctrl = { x: (a.x + b.x) / 2 + (-dy / len) * bend, y: (a.y + b.y) / 2 + (dx / len) * bend };
+  const s = clipRect(a, ctrl), e = clipRect(b, ctrl);
+  return `M${s.x},${s.y} Q${ctrl.x},${ctrl.y} ${e.x},${e.y}`;
+}
+
+let gEdges, gNodes, gTok;
+function drawDiagram(p) {
+  const svg = $('#svg');
+  svg.innerHTML = '';
+  const [vy, vh] = p.view || [0, 470];
+  svg.setAttribute('viewBox', `0 ${vy} 900 ${vh}`);
+  const defs = svgEl('defs', {}, svg);
+  const m = svgEl('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+  svgEl('path', { d: 'M0,0 L10,5 L0,10 z' }, m);
+  gEdges = svgEl('g', {}, svg);
+  gNodes = svgEl('g', {}, svg);
+  gTok = svgEl('g', {}, svg);
+  S.nodes = {}; S.edges = {};
+  for (const n of p.nodes) S.nodes[n.id] = { ...n };
+  for (const [a, b, o = {}] of p.edges) {
+    const path = svgEl('path', { d: edgeGeometry(S.nodes[a], S.nodes[b], o.bend), class: 'edge', 'marker-end': 'url(#arr)' }, gEdges);
+    S.edges[a + '>' + b] = { path, a, b };
+    if (o.label) {
+      const pt = path.getPointAtLength(path.getTotalLength() / 2);
+      const t = svgEl('text', { x: pt.x, y: pt.y + 4, 'text-anchor': 'middle', class: 'edge-label' }, gEdges);
+      t.textContent = o.label;
+    }
+  }
+  for (const n of Object.values(S.nodes)) {
+    const g = svgEl('g', { class: `node k-${n.kind}`, transform: `translate(${n.x - NODE_W / 2},${n.y - NODE_H / 2})` }, gNodes);
+    svgEl('rect', { class: 'box', width: NODE_W, height: NODE_H, rx: 10 }, g);
+    svgEl('circle', { class: 'dot', cx: NODE_W - 9, cy: 9, r: 4 }, g);
+    const t = svgEl('text', { class: 'title', x: NODE_W / 2, y: n.sub ? 22 : 30, 'text-anchor': 'middle' }, g);
+    t.textContent = n.label;
+    const s = svgEl('text', { class: 'sub', x: NODE_W / 2, y: 38, 'text-anchor': 'middle' }, g);
+    s.textContent = n.sub || '';
+    n.g = g; n.t = t; n.s = s;
+  }
+}
+
+const UI = {
+  state(id, st) {
+    const n = S.nodes[id]; if (!n) return;
+    n.g.classList.remove('active', 'done', 'error', 'wait');
+    if (st && st !== 'idle') n.g.classList.add(st);
+  },
+  label(id, title, sub) { const n = S.nodes[id]; n.label = title; n.t.textContent = title; if (sub !== undefined) UI.sub(id, sub); },
+  sub(id, sub) { const n = S.nodes[id]; n.s.textContent = sub; n.t.setAttribute('y', sub ? 22 : 30); },
+  show(id, on = true) { S.nodes[id].g.classList.toggle('off', !on); },
+  P: (id) => S.params[id],
+};
+
+async function travel(a, b, label) {
+  let e = S.edges[a + '>' + b], rev = false;
+  if (!e) { e = S.edges[b + '>' + a]; rev = true; }
+  let path, tmp = false;
+  if (e) path = e.path;
+  else { path = svgEl('path', { d: edgeGeometry(S.nodes[a], S.nodes[b]), class: 'edge' }, gEdges); tmp = true; }
+  path.classList.add('flow');
+  const tok = svgEl('g', { class: 'token' }, gTok);
+  svgEl('circle', { r: 6 }, tok);
+  const txt = svgEl('text', { y: -11, 'text-anchor': 'middle' }, tok);
+  txt.textContent = label && label.length > 30 ? label.slice(0, 29) + '…' : (label || '');
+  const L = path.getTotalLength(), dur = 750;
+  let p = 0;
+  try {
+    for (;;) {
+      const pt = path.getPointAtLength(rev ? L * (1 - p) : L * p);
+      tok.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+      if (p >= 1) break;
+      p = Math.min(1, p + (await tick()) / dur);
+    }
+  } finally {
+    tok.remove();
+    path.classList.remove('flow');
+    if (tmp) path.remove();
+  }
+}
+
+/* ---------- log ---------- */
+const TAGS = { user: 'UŻYTKOWNIK', llm: 'LLM', thought: 'MYŚL', action: 'AKCJA', obs: 'OBSERWACJA', tool: 'KOD', system: 'SYSTEM', warn: 'UWAGA', error: 'BŁĄD', result: 'WYNIK', ask: 'PYTANIE' };
+function fmtT(ms) { return (ms / 1000).toFixed(1) + ' s'; }
+function logEntry(type, who, text, L) {
+  const box = $('#log');
+  const empty = box.querySelector('.empty'); if (empty) empty.remove();
+  const d = document.createElement('div');
+  d.className = 'entry t-' + type;
+  const name = S.nodes[who] ? S.nodes[who].label : who;
+  d.innerHTML = `<span class="time">${fmtT(S.main ? S.main.t + (L && L !== S.main ? L.t : 0) : 0)}</span><span class="tag">${TAGS[type] || type}</span><span class="text">${name ? `<span class="who">${esc(name)}:</span>` : ''}${esc(text)}</span>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  if (S.stepping && S.running) { S.paused = true; S.stepping = false; syncButtons(); }
+  return d;
+}
+
+/* ---------- metryki ---------- */
+function resetMetrics() { S.M = { calls: 0, tok: 0, cost: 0, tools: 0 }; S.main = { t: 0 }; renderMetrics(); }
+function renderMetrics() {
+  $('#mCalls').textContent = S.M.calls;
+  $('#mTok').textContent = S.M.tok.toLocaleString('pl-PL');
+  $('#mTime').textContent = fmtT(S.main.t);
+  $('#mCost').textContent = '$' + S.M.cost.toFixed(3);
+}
+
+/* ---------- kontekst przekazywany do scenariusza ---------- */
+function makeCtx() {
+  const rng = mulberry32(+$('#seed').value || 1);
+  const main = S.main;
+  const c = {
+    ...UI, rng, main,
+    pick: (arr) => arr[Math.floor(rng() * arr.length)],
+    between: (a, b) => a + rng() * (b - a),
+    log: (type, who, text, L) => logEntry(type, who, text, L),
+    extra: (html) => { $('#extra').innerHTML = html; },
+    // „Praca” węzła: animacja + doliczenie czasu, tokenów i kosztu.
+    async work(id, { ms = 1200, tok = 400 } = {}, L = main) {
+      const n = S.nodes[id];
+      UI.state(id, 'active');
+      await wait(realDur(ms));
+      L.t += ms;
+      if (n.kind === 'llm') {
+        S.M.calls++; S.M.tok += tok; S.M.cost += (tok / 1000) * PRICE[n.model || 'big'];
+      } else if (n.kind === 'tool' || n.kind === 'gate') S.M.tools++;
+      UI.state(id, 'done');
+      renderMetrics();
+    },
+    async think(id, text, opts = {}, L = main) {
+      const k = S.nodes[id].kind;
+      logEntry(opts.tag || (k === 'llm' ? 'llm' : k === 'human' ? 'user' : 'tool'), id, text, L);
+      await c.work(id, opts, L);
+    },
+    async send(a, b, label, L = main) { await travel(a, b, label); L.t += 30; renderMetrics(); },
+    // Gałęzie równoległe: każda ma własny zegar, a główny przesuwa się o najdłuższą.
+    async par(branches, L = main) {
+      const lanes = branches.map(() => ({ t: 0 }));
+      const res = await Promise.all(branches.map((f, i) => f(lanes[i])));
+      const mx = Math.max(0, ...lanes.map((l) => l.t));
+      const sum = lanes.reduce((a, l) => a + l.t, 0);
+      L.t += mx; renderMetrics();
+      return { res, mx, sum };
+    },
+    ask(question, options) {
+      const g = S.gen;
+      return new Promise((resolve, reject) => {
+        const d = logEntry('ask', '', question);
+        const bx = document.createElement('div');
+        bx.className = 'ask-btns';
+        for (const o of options) {
+          const b = document.createElement('button');
+          b.className = 'btn'; b.type = 'button'; b.textContent = o;
+          b.onclick = () => {
+            if (g !== S.gen) return;
+            bx.remove(); S.askCancel = null;
+            d.querySelector('.text').append(` → ${o}`);
+            resolve(o);
+          };
+          bx.appendChild(b);
+        }
+        d.querySelector('.text').appendChild(bx);
+        S.askCancel = () => reject(new Cancel());
+      });
+    },
+  };
+  return c;
+}
+
+/* ------------------------------------------------------------------ */
+/* Wzorce                                                              */
+/* ------------------------------------------------------------------ */
+const pct = (v) => Math.round(v * 100) + '%';
+
+const PATTERNS = [
+/* 1 ---------------------------------------------------------------- */
+{
+  id: 'chain', name: 'Łańcuch promptów', group: 'Workflow', kind: 'stała sekwencja + bramka',
+  desc: 'Zadanie rozbite na stałą sekwencję kroków — każde wywołanie LLM przetwarza wynik poprzedniego. Programowa bramka sprawdza wynik pośredni i w razie potrzeby odsyła go do poprawki, zanim błąd rozleje się na dalsze etapy.',
+  when: ['Zadanie daje się czysto podzielić na stałe etapy.', 'Wynik pośredni można zweryfikować regułami w kodzie.', 'Trafność jest ważniejsza niż opóźnienie.'],
+  tradeoff: 'Kroki są sekwencyjne, więc czas rośnie liniowo. W zamian każdy krok jest prostszy, tańszy w testowaniu i łatwiejszy do debugowania.',
+  extraTitle: 'Postęp łańcucha',
+  view: [90, 210],
+  nodes: [
+    { id: 'in', label: 'Użytkownik', sub: 'temat', kind: 'io', x: 75, y: 235 },
+    { id: 'l1', label: 'LLM 1', sub: 'konspekt', kind: 'llm', model: 'big', x: 225, y: 235 },
+    { id: 'gate', label: 'Bramka', sub: 'walidacja w kodzie', kind: 'gate', x: 375, y: 235 },
+    { id: 'l2', label: 'LLM 2', sub: 'pisanie treści', kind: 'llm', model: 'big', x: 525, y: 235 },
+    { id: 'l3', label: 'LLM 3', sub: 'korekta i EN', kind: 'llm', model: 'small', x: 675, y: 235 },
+    { id: 'out', label: 'Wynik', sub: 'artykuł', kind: 'io', x: 825, y: 235 },
+  ],
+  edges: [['in', 'l1'], ['l1', 'gate'], ['gate', 'l2'], ['l2', 'l3'], ['l3', 'out'], ['gate', 'l1', { bend: 120, label: 'do poprawki' }]],
+  params: [
+    { id: 'topic', label: 'Temat', type: 'select', value: 'Magazyny energii w domu', options: ['Magazyny energii w domu', 'Jak działa RAG', 'Historia Wisły w 5 akapitach'] },
+    { id: 'pFail', label: 'Szansa odrzucenia przez bramkę', type: 'range', min: 0, max: 0.8, step: 0.05, value: 0.35, fmt: pct },
+    { id: 'retries', label: 'Limit poprawek', type: 'range', min: 0, max: 4, step: 1, value: 2 },
+  ],
+  async run(c) {
+    const topic = c.P('topic');
+    const stages = ['Konspekt', 'Walidacja', 'Treść', 'Korekta i tłumaczenie'];
+    const prog = (i, err) => c.extra(`<ol class="plan">${stages.map((s, j) => `<li><span class="st ${j < i ? 'st-ok' : j === i ? (err ? 'st-err' : 'st-run') : 'st-todo'}">${j < i ? '✓' : j === i ? (err ? '✕' : '◐') : '○'}</span>${s}</li>`).join('')}</ol>`);
+    prog(0);
+    c.log('user', 'in', `Napisz krótki artykuł: „${topic}”.`);
+    await c.send('in', 'l1', 'temat');
+    const maxR = c.P('retries');
+    for (let a = 1; ; a++) {
+      prog(0);
+      await c.think('l1', a === 1 ? 'Tworzę konspekt: wstęp, 3 sekcje, podsumowanie.' : `Poprawiam konspekt (próba ${a}) zgodnie z uwagami bramki.`, { ms: 1400, tok: 650 });
+      await c.send('l1', 'gate', 'konspekt');
+      prog(1);
+      await c.think('gate', 'Sprawdzam reguły: ≥ 3 sekcje, < 200 słów, słowa kluczowe tematu obecne.', { ms: 120 });
+      if (c.rng() < c.P('pFail')) {
+        const why = c.pick(['brak sekcji o kosztach', 'konspekt ma 260 słów (limit 200)', 'sekcja 2 nie zawiera słów kluczowych tematu']);
+        c.state('gate', 'error'); prog(1, true);
+        c.log('warn', 'gate', `Odrzucono: ${why}.`);
+        if (a <= maxR) { await c.send('gate', 'l1', 'uwagi'); c.state('gate', 'idle'); continue; }
+        c.log('error', 'gate', 'Wyczerpano limit poprawek — łańcuch przerwany, artykuł nie powstał.');
+        return;
+      }
+      c.log('system', 'gate', 'Konspekt zaakceptowany.');
+      break;
+    }
+    await c.send('gate', 'l2', 'konspekt ✓');
+    prog(2);
+    await c.think('l2', 'Piszę pełną treść na podstawie zatwierdzonego konspektu.', { ms: 2600, tok: 1900 });
+    await c.send('l2', 'l3', 'szkic');
+    prog(3);
+    await c.think('l3', 'Poprawiam styl i tłumaczę na angielski (tańszy model wystarczy).', { ms: 1300, tok: 1600 });
+    await c.send('l3', 'out', 'artykuł PL + EN');
+    prog(4);
+    c.state('out', 'done');
+    c.log('result', 'out', `Artykuł „${topic}” gotowy w dwóch językach.`);
+  },
+},
+
+/* 2 ---------------------------------------------------------------- */
+{
+  id: 'routing', name: 'Routing', group: 'Workflow', kind: 'klasyfikacja → specjalista',
+  desc: 'Tani klasyfikator rozpoznaje intencję zgłoszenia i kieruje je do wyspecjalizowanej ścieżki: dużego modelu z narzędziami, małego modelu do prostych pytań albo — gdy pewność jest za niska — do człowieka.',
+  when: ['Wejścia dzielą się na wyraźne kategorie o różnych potrzebach.', 'Proste przypadki można obsłużyć tańszym modelem.', 'Potrzebna jest ścieżka eskalacji do człowieka.'],
+  tradeoff: 'Błędna klasyfikacja kieruje zgłoszenie w złe miejsce. Próg pewności reguluje kompromis między automatyzacją a liczbą eskalacji.',
+  extraTitle: 'Statystyki routingu',
+  nodes: [
+    { id: 'in', label: 'Zgłoszenia', sub: 'kolejka', kind: 'io', x: 85, y: 235 },
+    { id: 'router', label: 'Router', sub: 'mały model', kind: 'llm', model: 'small', x: 270, y: 235 },
+    { id: 'tech', label: 'Wsparcie tech.', sub: 'duży model + logi', kind: 'llm', model: 'big', x: 540, y: 55 },
+    { id: 'refund', label: 'Płatności', sub: 'duży model + API', kind: 'llm', model: 'big', x: 540, y: 145 },
+    { id: 'sales', label: 'Sprzedaż', sub: 'mały model', kind: 'llm', model: 'small', x: 540, y: 235 },
+    { id: 'faq', label: 'FAQ', sub: 'mały model + baza', kind: 'llm', model: 'small', x: 540, y: 325 },
+    { id: 'human', label: 'Konsultant', sub: 'eskalacja', kind: 'human', x: 540, y: 415 },
+    { id: 'out', label: 'Odpowiedź', sub: 'do klienta', kind: 'io', x: 815, y: 235 },
+  ],
+  edges: [['in', 'router'], ['router', 'tech'], ['router', 'refund'], ['router', 'sales'], ['router', 'faq'], ['router', 'human'],
+    ['tech', 'out'], ['refund', 'out'], ['sales', 'out'], ['faq', 'out'], ['human', 'out']],
+  params: [
+    { id: 'thr', label: 'Próg pewności routera', type: 'range', min: 0.4, max: 0.95, step: 0.05, value: 0.7, fmt: pct },
+    { id: 'n', label: 'Liczba zgłoszeń', type: 'range', min: 3, max: 6, step: 1, value: 6 },
+  ],
+  async run(c) {
+    const Q = [
+      { q: 'Aplikacja zawiesza się przy logowaniu po aktualizacji 4.2', cat: 'tech', conf: 0.9, tok: 1800 },
+      { q: 'Pobraliście opłatę dwa razy w tym miesiącu', cat: 'refund', conf: 0.88, tok: 1500 },
+      { q: 'Ile kosztuje plan dla zespołu 50 osób?', cat: 'sales', conf: 0.84, tok: 700 },
+      { q: 'Jak zmienić hasło?', cat: 'faq', conf: 0.95, tok: 400 },
+      { q: 'Faktura się nie zgadza, a eksport CSV nie działa', cat: 'refund', conf: 0.6, tok: 1500 },
+      { q: 'Wasz produkt jest beznadziejny, chcę rozmawiać z człowiekiem', cat: 'faq', conf: 0.45, tok: 400 },
+    ].slice(0, c.P('n'));
+    const names = { tech: 'Wsparcie techniczne', refund: 'Płatności', sales: 'Sprzedaż', faq: 'FAQ' };
+    const st = { auto: 0, human: 0, baseline: 0 };
+    const draw = () => c.extra(`<dl class="kv"><dt>Obsłużone automatycznie</dt><dd>${st.auto}</dd><dt>Eskalacje do człowieka</dt><dd>${st.human}</dd><dt>Koszt routingu</dt><dd>$${S.M.cost.toFixed(4)}</dd><dt>Gdyby wszystko szło do dużego modelu</dt><dd>$${st.baseline.toFixed(4)}</dd></dl>`);
+    draw();
+    for (const [i, item] of Q.entries()) {
+      for (const id of ['router', 'tech', 'refund', 'sales', 'faq', 'human', 'out']) c.state(id, 'idle');
+      c.log('user', 'in', `#${i + 1}: „${item.q}”`);
+      await c.send('in', 'router', `zgłoszenie #${i + 1}`);
+      await c.work('router', { ms: 350, tok: 150 });
+      const conf = Math.max(0.05, Math.min(0.99, item.conf + c.between(-0.08, 0.08)));
+      st.baseline += ((150 + item.tok) / 1000) * PRICE.big;
+      if (conf >= c.P('thr')) {
+        c.log('llm', 'router', `Kategoria: ${names[item.cat]} (pewność ${pct(conf)}).`);
+        await c.send('router', item.cat, names[item.cat]);
+        await c.think(item.cat, 'Przygotowuję odpowiedź w swojej specjalizacji.', { ms: item.tok * 1.1, tok: item.tok });
+        await c.send(item.cat, 'out', 'odpowiedź');
+        st.auto++;
+      } else {
+        c.log('warn', 'router', `Najlepsze dopasowanie: ${names[item.cat]}, ale pewność ${pct(conf)} < próg ${pct(c.P('thr'))} — eskaluję.`);
+        await c.send('router', 'human', 'eskalacja');
+        await c.think('human', 'Konsultant przejmuje rozmowę.', { ms: 4000 });
+        await c.send('human', 'out', 'odpowiedź');
+        st.human++;
+      }
+      c.state('out', 'done');
+      draw();
+    }
+    c.log('result', 'out', `Obsłużono ${Q.length} zgłoszeń: ${st.auto} automatycznie, ${st.human} przez człowieka. Koszt $${S.M.cost.toFixed(4)} vs $${st.baseline.toFixed(4)} bez routingu.`);
+  },
+},
+
+/* 3 ---------------------------------------------------------------- */
+{
+  id: 'parallel', name: 'Równoległość', group: 'Workflow', kind: 'sekcjonowanie / głosowanie',
+  desc: 'Kilka wywołań LLM działa jednocześnie, a wyniki są łączone programowo. Sekcjonowanie dzieli zadanie na niezależne części (np. odpowiedź i osobny guardrail); głosowanie uruchamia to samo zadanie kilka razy i bierze większość.',
+  when: ['Podzadania są niezależne i można je zrównoleglić dla szybkości.', 'Każdy aspekt (treść, bezpieczeństwo, styl) zasługuje na osobną uwagę.', 'Chcesz zwiększyć pewność decyzji przez wiele głosów.'],
+  tradeoff: 'Czas ≈ najwolniejsza gałąź zamiast sumy, ale koszt rośnie z liczbą gałęzi. Głosowanie pomaga tylko, gdy błędy modeli są w miarę niezależne.',
+  extraTitle: 'Czas: równolegle vs sekwencyjnie',
+  nodes: [
+    { id: 'in', label: 'Wejście', sub: '', kind: 'io', x: 80, y: 235 },
+    { id: 'split', label: 'Dystrybutor', sub: 'kod', kind: 'tool', x: 250, y: 235 },
+    { id: 'w1', label: 'Gałąź 1', sub: '', kind: 'llm', model: 'big', x: 470, y: 55 },
+    { id: 'w2', label: 'Gałąź 2', sub: '', kind: 'llm', model: 'big', x: 470, y: 145 },
+    { id: 'w3', label: 'Gałąź 3', sub: '', kind: 'llm', model: 'big', x: 470, y: 235 },
+    { id: 'w4', label: 'Gałąź 4', sub: '', kind: 'llm', model: 'big', x: 470, y: 325 },
+    { id: 'w5', label: 'Gałąź 5', sub: '', kind: 'llm', model: 'big', x: 470, y: 415 },
+    { id: 'agg', label: 'Agregator', sub: 'kod', kind: 'tool', x: 680, y: 235 },
+    { id: 'out', label: 'Wynik', sub: '', kind: 'io', x: 835, y: 235 },
+  ],
+  edges: [['in', 'split'], ['split', 'w1'], ['split', 'w2'], ['split', 'w3'], ['split', 'w4'], ['split', 'w5'],
+    ['w1', 'agg'], ['w2', 'agg'], ['w3', 'agg'], ['w4', 'agg'], ['w5', 'agg'], ['agg', 'out']],
+  params: [
+    { id: 'mode', label: 'Tryb', type: 'select', value: 'Sekcjonowanie', options: ['Sekcjonowanie', 'Głosowanie'] },
+    { id: 'voters', label: 'Liczba głosujących', type: 'range', min: 3, max: 5, step: 1, value: 5 },
+    { id: 'acc', label: 'Trafność pojedynczego modelu', type: 'range', min: 0.5, max: 0.95, step: 0.05, value: 0.7, fmt: pct },
+  ],
+  prepare() {
+    const vote = UI.P('mode') === 'Głosowanie';
+    const n = vote ? UI.P('voters') : 3;
+    ['w1', 'w2', 'w3', 'w4', 'w5'].forEach((id, i) => UI.show(id, i < n));
+    if (vote) {
+      for (let i = 1; i <= 5; i++) UI.label('w' + i, `Głosujący ${i}`, 'ten sam prompt');
+      UI.label('in', 'Fragment kodu', 'do audytu'); UI.label('agg', 'Agregator', 'większość głosów'); UI.label('out', 'Werdykt', '');
+    } else {
+      UI.label('w1', 'Odpowiedź', 'merytoryka'); UI.label('w2', 'Guardrail', 'zgodność i ryzyko'); UI.label('w3', 'Redaktor', 'ton marki');
+      UI.label('in', 'Pytanie klienta', 'bank'); UI.label('agg', 'Agregator', 'scalanie + blokada'); UI.label('out', 'Odpowiedź', '');
+    }
+  },
+  async run(c) {
+    const vote = c.P('mode') === 'Głosowanie';
+    const n = vote ? c.P('voters') : 3;
+    const ids = ['w1', 'w2', 'w3', 'w4', 'w5'].slice(0, n);
+    if (vote) c.log('user', 'in', 'Czy ten kod jest podatny na SQL injection?  query = "SELECT * FROM users WHERE id=" + req.params.id');
+    else c.log('user', 'in', 'Czy mogę wcześniej spłacić kredyt hipoteczny bez prowizji?');
+    await c.send('in', 'split', 'wejście');
+    await c.think('split', `Rozsyłam do ${n} gałęzi jednocześnie.`, { ms: 20 });
+    const sections = [
+      ['Formułuję odpowiedź merytoryczną (ustawa o kredycie hipotecznym).', 'odpowiedź'],
+      ['Sprawdzam, czy pytanie i odpowiedź nie łamią polityk (porady prawne, dane osobowe).', 'ocena ryzyka'],
+      ['Dostosowuję ton do wytycznych marki.', 'wskazówki stylu'],
+    ];
+    let flagged = false;
+    const r = await c.par(ids.map((id, i) => async (L) => {
+      await c.send('split', id, vote ? 'kod' : 'pytanie', L);
+      const ms = c.between(900, 2800);
+      if (vote) {
+        await c.work(id, { ms, tok: 700 }, L);
+        const yes = c.rng() < c.P('acc');
+        c.log('llm', id, yes ? 'TAK — konkatenacja parametru w zapytaniu SQL.' : 'NIE — nie widzę problemu.', L);
+        await c.send(id, 'agg', yes ? 'TAK' : 'NIE', L);
+        return yes;
+      }
+      await c.think(id, sections[i][0], { ms, tok: 900 }, L);
+      if (i === 1 && c.rng() < 0.15) { flagged = true; c.state(id, 'error'); c.log('warn', id, 'Wykryto prośbę o wiążącą poradę prawną — wymagane zastrzeżenie.', L); }
+      await c.send(id, 'agg', sections[i][1], L);
+      return true;
+    }));
+    c.extra(`<dl class="kv"><dt>Równolegle (najwolniejsza gałąź)</dt><dd><b>${fmtT(r.mx)}</b></dd><dt>Sekwencyjnie (suma)</dt><dd>${fmtT(r.sum)}</dd><dt>Przyspieszenie</dt><dd>${(r.sum / r.mx).toFixed(1)}×</dd><dt>Koszt</dt><dd>× ${n} wywołań</dd></dl>`);
+    c.log('system', 'agg', `Wszystkie gałęzie gotowe po ${fmtT(r.mx)} (sekwencyjnie byłoby ${fmtT(r.sum)}).`);
+    if (vote) {
+      const yes = r.res.filter(Boolean).length;
+      await c.think('agg', `Liczę głosy: TAK ${yes}, NIE ${n - yes}.`, { ms: 10 });
+      // dokładne prawdopodobieństwo poprawnej większości (rozkład dwumianowy)
+      const p = c.P('acc'); let pm = 0;
+      const C = (a, b) => { let x = 1; for (let k = 1; k <= b; k++) x = (x * (a - b + k)) / k; return x; };
+      for (let k = Math.floor(n / 2) + 1; k <= n; k++) pm += C(n, k) * p ** k * (1 - p) ** (n - k);
+      await c.send('agg', 'out', yes > n / 2 ? 'PODATNY' : 'BEZPIECZNY');
+      c.state('out', 'done');
+      c.log(yes > n / 2 ? 'result' : 'error', 'out', yes > n / 2 ? `Werdykt większości: podatność potwierdzona (poprawnie).` : `Werdykt większości: „bezpieczny” — błędny! Pojedyncze modele pomyliły się zbyt często.`);
+      c.log('system', '', `Teoria: przy trafności ${pct(p)} pojedynczego modelu większość z ${n} głosów ma rację z prawdopodobieństwem ${pct(pm)}.`);
+    } else {
+      await c.think('agg', flagged ? 'Scalam odpowiedź i dodaję zastrzeżenie wymagane przez guardrail.' : 'Scalam odpowiedź z poprawkami stylu.', { ms: 15 });
+      await c.send('agg', 'out', 'odpowiedź');
+      c.state('out', 'done');
+      c.log('result', 'out', flagged ? 'Odpowiedź wysłana z zastrzeżeniem „to nie jest porada prawna”.' : 'Odpowiedź gotowa: tak, w pierwszych 3 latach prowizja jest ograniczona ustawowo; potem bez prowizji.');
+    }
+  },
+},
+
+/* 4 ---------------------------------------------------------------- */
+{
+  id: 'orch', name: 'Orkiestrator i wykonawcy', group: 'Workflow', kind: 'dynamiczny podział pracy',
+  desc: 'Centralny LLM sam decyduje, na jakie podzadania rozbić problem — ich liczba i treść nie są znane z góry. Deleguje je do wykonawców, zbiera wyniki, ponawia nieudane i syntetyzuje odpowiedź.',
+  when: ['Nie da się przewidzieć podzadań z góry (np. zmiany w wielu plikach).', 'Podzadania są w dużej mierze niezależne.', 'Potrzebna jest synteza wielu częściowych wyników.'],
+  tradeoff: 'Elastyczniejsze niż stała równoległość, ale plan orkiestratora może być błędny, a każda runda delegacji dokłada koszt i opóźnienie.',
+  extraTitle: 'Plan orkiestratora',
+  nodes: [
+    { id: 'in', label: 'Zadanie', sub: '', kind: 'io', x: 290, y: 55 },
+    { id: 'orch', label: 'Orkiestrator', sub: 'duży model', kind: 'llm', model: 'big', x: 290, y: 235 },
+    { id: 'out', label: 'Wynik', sub: 'synteza', kind: 'io', x: 290, y: 415 },
+    { id: 'w1', label: 'Wykonawca 1', sub: '', kind: 'llm', model: 'small', x: 640, y: 70 },
+    { id: 'w2', label: 'Wykonawca 2', sub: '', kind: 'llm', model: 'small', x: 640, y: 180 },
+    { id: 'w3', label: 'Wykonawca 3', sub: '', kind: 'llm', model: 'small', x: 640, y: 290 },
+    { id: 'w4', label: 'Wykonawca 4', sub: '', kind: 'llm', model: 'small', x: 640, y: 400 },
+  ],
+  edges: [['in', 'orch'], ['orch', 'out'], ['orch', 'w1'], ['orch', 'w2'], ['orch', 'w3'], ['orch', 'w4']],
+  params: [
+    { id: 'task', label: 'Zadanie', type: 'select', value: 'Logowanie przez Google', options: ['Logowanie przez Google', 'Raport: pompy ciepła w PL', 'Lokalizacja dokumentacji'] },
+    { id: 'pFail', label: 'Szansa błędu wykonawcy', type: 'range', min: 0, max: 0.6, step: 0.05, value: 0.2, fmt: pct },
+  ],
+  prepare() { ['w1', 'w2', 'w3', 'w4'].forEach((id) => { UI.show(id, false); UI.sub(id, 'bezczynny'); }); UI.sub('in', UI.P('task')); },
+  async run(c) {
+    const TASKS = {
+      'Logowanie przez Google': { all: ['Backend: endpoint OAuth i callback', 'Frontend: przycisk i przepływ logowania', 'Migracja: tabela tożsamości', 'Testy integracyjne'], short: ['backend', 'frontend', 'migracja DB', 'testy'], min: 3 },
+      'Raport: pompy ciepła w PL': { all: ['Dane sprzedaży 2023–2025', 'Programy dotacji', 'Porównanie producentów', 'Prognoza cen energii'], short: ['dane', 'dotacje', 'producenci', 'ceny'], min: 2 },
+      'Lokalizacja dokumentacji': { all: ['Tłumaczenie na niemiecki', 'Tłumaczenie na czeski', 'Tłumaczenie na ukraiński', 'Słownik terminów'], short: ['DE', 'CS', 'UK', 'słownik'], min: 3 },
+    };
+    const T = TASKS[c.P('task')];
+    const k = T.min + Math.floor(c.rng() * (T.all.length - T.min + 1));
+    const plan = T.all.slice(0, k).map((t, i) => ({ t, s: T.short[i], st: 'todo', w: 'w' + (i + 1), tries: 0 }));
+    const sym = { todo: ['○', 'st-todo'], run: ['◐', 'st-run'], ok: ['✓', 'st-ok'], err: ['✕', 'st-err'] };
+    const draw = () => c.extra(`<ol class="plan">${plan.map((p) => `<li><span class="st ${sym[p.st][1]}">${sym[p.st][0]}</span><span>${esc(p.t)}${p.tries > 1 ? ` <small>(próba ${p.tries})</small>` : ''}</span></li>`).join('')}</ol>`);
+    c.log('user', 'in', `Zadanie: ${c.P('task')}.`);
+    await c.send('in', 'orch', 'zadanie');
+    await c.think('orch', 'Analizuję zadanie i decyduję, na ile części je podzielić.', { ms: 1800, tok: 1200 });
+    c.log('llm', 'orch', `Plan: ${k} podzadania — ${plan.map((p) => p.s).join(', ')}.`);
+    draw();
+    let todo = plan;
+    for (let round = 1; todo.length && round <= 3; round++) {
+      if (round > 1) c.log('llm', 'orch', `Runda ${round}: ponownie deleguję ${todo.length} nieudane podzadanie(a) z dodatkowym kontekstem błędu.`);
+      await c.par(todo.map((p) => async (L) => {
+        c.show(p.w); c.sub(p.w, p.s); p.st = 'run'; p.tries++; draw();
+        await c.send('orch', p.w, p.s, L);
+        await c.think(p.w, `Wykonuję: ${p.t}.`, { ms: c.between(1500, 3500), tok: 1400 }, L);
+        if (round < 3 && c.rng() < c.P('pFail')) {
+          p.st = 'err'; c.state(p.w, 'error'); draw();
+          c.log('error', p.w, c.pick(['Testy nie przechodzą po zmianie.', 'Źródło niedostępne (HTTP 503).', 'Wynik niezgodny z formatem.']), L);
+          await c.send(p.w, 'orch', 'błąd', L);
+          return;
+        }
+        p.st = 'ok'; draw();
+        await c.send(p.w, 'orch', 'wynik', L);
+      }));
+      todo = plan.filter((p) => p.st === 'err');
+    }
+    await c.think('orch', 'Łączę wyniki wykonawców w spójną całość i sprawdzam spójność.', { ms: 2200, tok: 2400 });
+    await c.send('orch', 'out', 'synteza');
+    c.state('out', 'done');
+    c.log('result', 'out', `Ukończono „${c.P('task')}” — ${k} podzadania, ${plan.reduce((a, p) => a + p.tries, 0)} delegacji.`);
+  },
+},
+
+/* 5 ---------------------------------------------------------------- */
+{
+  id: 'evalopt', name: 'Ewaluator i optymalizator', group: 'Workflow', kind: 'pętla generuj → oceń',
+  desc: 'Jeden LLM generuje rozwiązanie, drugi ocenia je według jasnych kryteriów i odsyła konkretne uwagi. Pętla trwa, aż ocena przekroczy próg albo skończy się limit iteracji.',
+  when: ['Istnieją jasne kryteria oceny.', 'Iteracyjne poprawki wyraźnie podnoszą jakość.', 'Człowiek potrafiłby dać pomocny feedback — LLM też.'],
+  tradeoff: 'Każda iteracja to dwa wywołania LLM. Zyski maleją z każdą rundą, więc limit iteracji i próg trzeba dobrać rozsądnie.',
+  extraTitle: 'Oceny kolejnych wersji',
+  view: [140, 190],
+  nodes: [
+    { id: 'in', label: 'Zadanie', sub: '', kind: 'io', x: 90, y: 235 },
+    { id: 'gen', label: 'Generator', sub: 'tworzy wersję', kind: 'llm', model: 'big', x: 320, y: 235 },
+    { id: 'ev', label: 'Ewaluator', sub: 'ocenia 0–100', kind: 'llm', model: 'big', x: 600, y: 235 },
+    { id: 'out', label: 'Wynik', sub: '', kind: 'io', x: 820, y: 235 },
+  ],
+  edges: [['in', 'gen'], ['gen', 'ev', { bend: 80, label: 'nowa wersja' }], ['ev', 'gen', { bend: 80, label: 'uwagi' }], ['ev', 'out']],
+  params: [
+    { id: 'task', label: 'Zadanie', type: 'select', value: 'Tłumaczenie wiersza', options: ['Tłumaczenie wiersza', 'Zapytanie SQL', 'Opis produktu'] },
+    { id: 'thr', label: 'Próg akceptacji', type: 'range', min: 60, max: 95, step: 5, value: 85 },
+    { id: 'max', label: 'Limit iteracji', type: 'range', min: 1, max: 8, step: 1, value: 5 },
+  ],
+  async run(c) {
+    const TASKS = {
+      'Tłumaczenie wiersza': { prompt: 'Przetłumacz wiersz na angielski, zachowując rytm i rymy.', crit: 'wierność, rytm, rym, naturalność', fb: ['zgubiony rym w 2. strofie', 'zbyt dosłowne tłumaczenie metafory', 'rytm łamie się w wersie 5', 'nienaturalny szyk w ostatnim wersie'] },
+      'Zapytanie SQL': { prompt: 'Napisz zapytanie SQL: top 5 klientów wg przychodu w 2025 r.', crit: 'poprawność, wydajność, czytelność', fb: ['brak filtrowania po roku', 'JOIN mnoży wiersze — użyj agregacji w podzapytaniu', 'brak indeksowanej kolumny w WHERE', 'nieczytelne aliasy'] },
+      'Opis produktu': { prompt: 'Napisz opis produktu (czajnik) zoptymalizowany pod SEO.', crit: 'słowa kluczowe, długość, korzyści, ton', fb: ['brak frazy „czajnik elektryczny”', 'za długi pierwszy akapit', 'wymienione cechy zamiast korzyści', 'zbyt formalny ton'] },
+    };
+    const T = TASKS[c.P('task')];
+    const thr = c.P('thr'), max = c.P('max');
+    let s = c.between(38, 55);
+    const scores = [];
+    const chart = () => {
+      const W = 300, H = 130, bw = Math.min(30, (W - 40) / max - 6);
+      const y = (v) => H - 18 - (v / 100) * (H - 30);
+      let h = `<svg class="chart" viewBox="0 0 ${W} ${H}" width="100%">`;
+      h += `<line class="thr" x1="26" x2="${W}" y1="${y(thr)}" y2="${y(thr)}"/><text x="0" y="${y(thr) + 4}">${thr}</text>`;
+      scores.forEach((v, i) => {
+        const x = 32 + i * (bw + 6);
+        h += `<rect class="${v >= thr ? 'ok' : 'no'}" x="${x}" y="${y(v)}" width="${bw}" height="${H - 18 - y(v)}" rx="3"/><text x="${x + bw / 2}" y="${y(v) - 4}" text-anchor="middle">${v}</text><text x="${x + bw / 2}" y="${H - 4}" text-anchor="middle">v${i + 1}</text>`;
+      });
+      c.extra(h + '</svg>');
+    };
+    chart();
+    c.log('user', 'in', T.prompt);
+    await c.send('in', 'gen', 'zadanie');
+    let fb = '';
+    for (let i = 1; i <= max; i++) {
+      await c.think('gen', i === 1 ? 'Tworzę pierwszą wersję.' : `Tworzę wersję ${i}, uwzględniając: ${fb}.`, { ms: 2000, tok: 1300 + i * 250 });
+      await c.send('gen', 'ev', `v${i}`);
+      await c.think('ev', `Oceniam v${i} wg kryteriów: ${T.crit}.`, { ms: 1100, tok: 900 + i * 200 });
+      const score = Math.round(s);
+      scores.push(score); chart();
+      if (score >= thr) {
+        c.log('llm', 'ev', `Ocena ${score}/100 ≥ ${thr} — akceptuję.`);
+        await c.send('ev', 'out', `v${i} ✓`);
+        c.state('out', 'done');
+        c.log('result', 'out', `Zaakceptowano wersję ${i} po ${i} iteracjach (${S.M.calls} wywołań LLM).`);
+        return;
+      }
+      fb = T.fb[(i - 1) % T.fb.length];
+      c.state('ev', 'error');
+      c.log('warn', 'ev', `Ocena ${score}/100 < ${thr}. Uwagi: ${fb}.`);
+      if (i < max) await c.send('ev', 'gen', 'uwagi');
+      c.state('ev', 'idle');
+      s = c.rng() < 0.15 ? s - c.between(2, 6) : s + (100 - s) * c.between(0.2, 0.45);
+    }
+    const best = Math.max(...scores), bi = scores.indexOf(best) + 1;
+    c.log('warn', 'ev', `Limit ${max} iteracji wyczerpany — zwracam najlepszą wersję v${bi} (${best}/100).`);
+    await c.send('ev', 'out', `v${bi}`);
+    c.state('out', 'done');
+    c.log('result', 'out', `Wynik poniżej progu: v${bi} z oceną ${best}/100.`);
+  },
+},
+
+/* 6 ---------------------------------------------------------------- */
+{
+  id: 'react', name: 'Autonomiczny agent (ReAct)', group: 'Agent', kind: 'myśl → akcja → obserwacja',
+  desc: 'LLM w pętli sam decyduje, którego narzędzia użyć, obserwuje wynik i planuje kolejny krok. Kontekst rośnie z każdym krokiem. Błędy narzędzi wymagają adaptacji, budżet kroków chroni przed zapętleniem, a nieodwracalne akcje wymagają zgody człowieka.',
+  when: ['Problem jest otwarty — nie da się z góry ustalić ścieżki.', 'Środowisko daje wiarygodną informację zwrotną (wyniki narzędzi).', 'Można zaufać modelowi w ramach budżetu i z kontrolą człowieka.'],
+  tradeoff: 'Największa elastyczność, ale też najwyższy i najmniej przewidywalny koszt oraz ryzyko kumulacji błędów. Wymaga sandboxa, limitów i punktów kontrolnych.',
+  extraTitle: 'Stan agenta',
+  nodes: [
+    { id: 'user', label: 'Użytkownik', sub: 'zleca i zatwierdza', kind: 'human', x: 100, y: 235 },
+    { id: 'agent', label: 'Agent', sub: 'LLM w pętli', kind: 'llm', model: 'big', x: 420, y: 235 },
+    { id: 'search', label: 'Wyszukiwarka', sub: 'web', kind: 'tool', x: 420, y: 60 },
+    { id: 'calc', label: 'Kalkulator', sub: 'python', kind: 'tool', x: 760, y: 140 },
+    { id: 'mem', label: 'Pamięć', sub: 'długoterminowa', kind: 'tool', x: 760, y: 330 },
+    { id: 'api', label: 'API rezerwacji', sub: 'nieodwracalne!', kind: 'tool', x: 420, y: 410 },
+  ],
+  edges: [['user', 'agent'], ['agent', 'search'], ['agent', 'calc'], ['agent', 'mem'], ['agent', 'api']],
+  params: [
+    { id: 'pErr', label: 'Szansa błędu narzędzia', type: 'range', min: 0, max: 0.5, step: 0.05, value: 0.2, fmt: pct },
+    { id: 'maxSteps', label: 'Budżet kroków', type: 'range', min: 3, max: 14, step: 1, value: 10 },
+    { id: 'hitl', label: 'Zgoda człowieka na akcje nieodwracalne', type: 'check', value: true },
+  ],
+  async run(c) {
+    const steps = [
+      { thought: 'Najpierw prognoza pogody na sobotę w Gdańsku.', tool: 'search', call: 'szukaj("pogoda Gdańsk sobota")', obs: '18°C, słonecznie, wiatr 12 km/h', fact: 'pogoda: 18°C, słonecznie', tok: 220 },
+      { thought: 'Liczę koszt paliwa: 600 km × 6,5 l/100 km × 6,40 zł/l.', tool: 'calc', call: 'oblicz(600 * 6.5 / 100 * 6.40)', obs: '249.6', fact: 'paliwo: 249,60 zł', tok: 60 },
+      { thought: 'Sprawdzam w pamięci preferencje noclegowe użytkownika.', tool: 'mem', call: 'odczytaj("preferencje_noclegu")', obs: '{"typ": "hotel blisko plaży", "budżet": "≤ 400 zł/noc"}', fact: 'preferencje: plaża, ≤ 400 zł', tok: 120 },
+      { thought: 'Szukam hotelu spełniającego preferencje.', tool: 'search', call: 'szukaj("hotel Gdańsk Brzeźno do 400 zł")', obs: 'Hotel Mewa — 360 zł/noc, ocena 4,6; 150 m od plaży', fact: 'hotel: Mewa, 360 zł/noc', tok: 300 },
+      { thought: 'Rezerwacja to akcja nieodwracalna (płatność).', tool: 'api', call: 'rezerwuj(hotel="Mewa", noce=2, kwota=720)', obs: 'Potwierdzenie #GD-4821', fact: 'rezerwacja: #GD-4821', tok: 80, hitl: true },
+      { thought: 'Zapisuję podsumowanie podróży w pamięci na przyszłość.', tool: 'mem', call: 'zapisz("ostatnia_podróż", "Gdańsk, Hotel Mewa")', obs: 'OK', fact: null, tok: 30 },
+    ];
+    const max = c.P('maxSteps');
+    let used = 0, ctxTok = 450, rejected = false;
+    const facts = [];
+    const draw = () => c.extra(`<dl class="kv"><dt>Kroki</dt><dd>${used} / ${max}</dd><dt>Kontekst</dt><dd>${ctxTok.toLocaleString('pl-PL')} tokenów</dd></dl><div class="bar"><div style="width:${Math.min(100, (ctxTok / 4000) * 100)}%"></div></div><b>Pamięć robocza</b><ul class="plan">${facts.map((f) => `<li><span class="st st-ok">•</span>${esc(f)}</li>`).join('') || '<li class="st-todo">—</li>'}</ul>`);
+    draw();
+    c.log('user', 'user', 'Zaplanuj weekend w Gdańsku: pogoda w sobotę, koszt paliwa z Krakowa i nocleg wg moich preferencji.');
+    await c.send('user', 'agent', 'zadanie');
+    const final = async (partial) => {
+      await c.think('agent', 'Składam odpowiedź końcową z zebranych obserwacji.', { ms: 1500, tok: ctxTok + 400 });
+      await c.send('agent', 'user', 'odpowiedź');
+      c.state('user', 'done');
+      c.log(partial ? 'warn' : 'result', 'user', (partial ? 'Odpowiedź częściowa — ' : '') + (facts.length ? facts.join('; ') : 'brak zebranych danych') + (rejected ? '; rezerwacja pominięta na życzenie użytkownika (hotel tylko zarekomendowany)' : '') + '.');
+    };
+    for (const s of steps) {
+      let retry = false;
+      for (;;) {
+        if (used >= max) {
+          c.log('error', 'agent', `Budżet ${max} kroków wyczerpany — przerywam pętlę.`);
+          await final(true);
+          return;
+        }
+        used++; draw();
+        await c.work('agent', { ms: 900, tok: ctxTok + 150 });
+        c.log('thought', 'agent', retry ? `Poprzednie wywołanie zawiodło — ponawiam z innymi parametrami. ${s.thought}` : s.thought);
+        if (s.hitl) {
+          if (c.P('hitl')) {
+            c.state('user', 'wait');
+            await c.send('agent', 'user', 'prośba o zgodę');
+            const a = await c.ask(`Agent chce wykonać ${s.call}. Zatwierdzić?`, ['Zatwierdź', 'Odrzuć']);
+            c.state('user', 'idle');
+            await c.send('user', 'agent', a);
+            if (a === 'Odrzuć') {
+              rejected = true;
+              c.log('thought', 'agent', 'Użytkownik odrzucił rezerwację — nie wykonuję akcji, podam tylko rekomendację.');
+              ctxTok += 60; draw();
+              break;
+            }
+          } else {
+            c.log('warn', 'agent', 'Brak nadzoru człowieka: nieodwracalna akcja wykonywana automatycznie.');
+          }
+        }
+        c.log('action', 'agent', s.call);
+        await c.send('agent', s.tool, s.call.split('(')[0]);
+        await c.work(s.tool, { ms: s.tool === 'search' ? 1200 : 250 });
+        if (c.rng() < c.P('pErr')) {
+          c.state(s.tool, 'error');
+          await c.send(s.tool, 'agent', 'błąd');
+          c.log('obs', s.tool, c.pick(['Błąd: timeout 504', 'Błąd: limit zapytań (429)', 'Błąd: niepoprawny format argumentu']));
+          ctxTok += 90; retry = true; draw();
+          continue;
+        }
+        await c.send(s.tool, 'agent', 'wynik');
+        c.log('obs', s.tool, s.obs);
+        ctxTok += s.tok + 60;
+        if (s.fact) facts.push(s.fact);
+        draw();
+        break;
+      }
+    }
+    await final(false);
+  },
+},
+];
+
+/* ------------------------------------------------------------------ */
+/* UI                                                                  */
+/* ------------------------------------------------------------------ */
+function syncButtons() {
+  const b = $('#playBtn');
+  b.textContent = !S.running ? (S.done ? '↻ Uruchom ponownie' : '▶ Uruchom') : S.paused ? '▶ Wznów' : '❚❚ Pauza';
+}
+function renderParams(p) {
+  const box = $('#params');
+  box.innerHTML = '';
+  S.params = {};
+  for (const d of p.params || []) {
+    S.params[d.id] = d.value;
+    const w = document.createElement('label');
+    w.className = 'param' + (d.type === 'check' ? ' check' : '');
+    const fmt = d.fmt || ((v) => v);
+    if (d.type === 'range') {
+      w.innerHTML = `<span>${d.label}: <b>${fmt(d.value)}</b></span><input type="range" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.value}">`;
+      const inp = w.querySelector('input'), out = w.querySelector('b');
+      inp.oninput = () => { S.params[d.id] = +inp.value; out.textContent = fmt(+inp.value); onParam(); };
+    } else if (d.type === 'select') {
+      w.innerHTML = `<span>${d.label}</span><select>${d.options.map((o) => `<option${o === d.value ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      const sel = w.querySelector('select');
+      sel.onchange = () => { S.params[d.id] = sel.value; onParam(); };
+    } else {
+      w.innerHTML = `<input type="checkbox"${d.value ? ' checked' : ''}><span>${d.label}</span>`;
+      const cb = w.querySelector('input');
+      cb.onchange = () => { S.params[d.id] = cb.checked; onParam(); };
+    }
+    box.appendChild(w);
+  }
+}
+function onParam() { if (!S.running) resetSim(); }
+
+function resetSim() {
+  S.gen++;
+  if (S.askCancel) { const f = S.askCancel; S.askCancel = null; f(); }
+  S.running = false; S.paused = false; S.stepping = false; S.done = false;
+  drawDiagram(S.pattern);
+  if (S.pattern.prepare) S.pattern.prepare();
+  resetMetrics();
+  $('#log').innerHTML = '<div class="empty">Naciśnij „Uruchom”, aby rozpocząć symulację.</div>';
+  $('#extra').innerHTML = '';
+  syncButtons();
+}
+
+async function start(step = false) {
+  resetSim();
+  S.running = true; S.stepping = step;
+  syncButtons();
+  const g = S.gen;
+  try {
+    await S.pattern.run(makeCtx());
+  } catch (e) {
+    if (!(e instanceof Cancel)) { console.error(e); logEntry('error', '', 'Wyjątek w symulacji: ' + e.message); }
+  } finally {
+    if (g === S.gen) { S.running = false; S.paused = false; S.stepping = false; S.done = true; syncButtons(); }
+  }
+}
+
+function selectPattern(id) {
+  S.pattern = PATTERNS.find((p) => p.id === id) || PATTERNS[0];
+  document.querySelectorAll('nav.patterns button').forEach((b) => b.setAttribute('aria-selected', b.dataset.id === S.pattern.id));
+  $('#pName').textContent = S.pattern.name;
+  $('#pDesc').textContent = S.pattern.desc;
+  $('#extraTitle').textContent = S.pattern.extraTitle || 'Stan';
+  $('#when').innerHTML = `<h4>Kiedy stosować</h4><ul>${S.pattern.when.map((w) => `<li>${esc(w)}</li>`).join('')}</ul><h4>Kompromis</h4><p>${esc(S.pattern.tradeoff)}</p>`;
+  renderParams(S.pattern);
+  resetSim();
+  try { localStorage.setItem('agent-sim-pattern', S.pattern.id); } catch (e) { /* brak dostępu */ }
+  if (location.hash.slice(1) !== S.pattern.id) history.replaceState(null, '', '#' + S.pattern.id);
+}
+
+function buildNav() {
+  const nav = $('#nav');
+  let group = null;
+  PATTERNS.forEach((p, i) => {
+    if (p.group !== group) {
+      group = p.group;
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.textContent = group === 'Agent' ? 'Agenci' : 'Workflow (ścieżki w kodzie)';
+      nav.appendChild(g);
+    }
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.id = p.id;
+    b.innerHTML = `<span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t">${esc(p.name)}</span><span class="kind">${esc(p.kind)}</span>`;
+    b.onclick = () => selectPattern(p.id);
+    nav.appendChild(b);
+  });
+}
+
+$('#playBtn').onclick = () => {
+  if (!S.running) { start(false); return; }
+  S.paused = !S.paused; S.stepping = false; syncButtons();
+};
+$('#stepBtn').onclick = () => {
+  if (!S.running) { start(true); return; }
+  S.stepping = true; S.paused = false; syncButtons();
+};
+$('#resetBtn').onclick = () => resetSim();
+$('#speed').oninput = (e) => { S.speed = +e.target.value; $('#speedV').textContent = S.speed + '×'; };
+$('#diceBtn').onclick = () => { $('#seed').value = 1 + Math.floor(Math.random() * 9999); onParam(); };
+$('#seed').onchange = onParam;
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $('#playBtn').click(); }
+});
+
+const themes = ['auto', 'light', 'dark'];
+let themeIdx = 0;
+try { themeIdx = Math.max(0, themes.indexOf(localStorage.getItem('agent-sim-theme') || 'auto')); } catch (e) { /* brak dostępu */ }
+function applyTheme() {
+  const t = themes[themeIdx];
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = t;
+  $('#themeBtn').textContent = 'Motyw: ' + { auto: 'auto', light: 'jasny', dark: 'ciemny' }[t];
+}
+$('#themeBtn').onclick = () => { themeIdx = (themeIdx + 1) % 3; applyTheme(); try { localStorage.setItem('agent-sim-theme', themes[themeIdx]); } catch (e) { /* brak dostępu */ } };
+applyTheme();
+
+buildNav();
+let initial = location.hash.slice(1);
+if (!PATTERNS.some((p) => p.id === initial)) { try { initial = localStorage.getItem('agent-sim-pattern'); } catch (e) { initial = null; } }
+selectPattern(initial || PATTERNS[0].id);
+window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== S.pattern.id && PATTERNS.some((p) => p.id === id)) selectPattern(id); });
+</script>
+</body>
+</html>
