@@ -20,4 +20,5 @@ Otwórz `index.html` w przeglądarce (albo włącz GitHub Pages dla tego repozyt
 - ślad wykonania z czasem symulowanym, metryki: wywołania LLM, tokeny, czas, koszt (umowne),
 - parametry każdego wzorca (prawdopodobieństwa błędów, progi, limity), ziarno losowości dla powtarzalności,
 - sterowanie: start / pauza (spacja), praca krokowa, prędkość 0,25–4×,
+- karta „Frameworki dla tego wzorca”: LangChain, LangGraph, LlamaIndex, CrewAI, AutoGen, DSPy, Claude Agent SDK, OpenAI Agents SDK i inne — z konkretnym API realizującym dany wzorzec,
 - motyw jasny / ciemny, układ responsywny.

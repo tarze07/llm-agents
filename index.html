@@ -111,6 +111,12 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .bar > div { height: 100%; background: var(--llm); transition: width .4s; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.fw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border-bottom: 1px solid var(--line); overflow: hidden; }
+.fw-item { padding: 12px 14px; border-right: 1px solid var(--line); border-top: 1px solid var(--line); margin: -1px -1px 0 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fw-item b { font-size: 14px; }
+.fw-item code { font-family: var(--mono); font-size: 12px; color: var(--llm); overflow-wrap: anywhere; }
+.fw-item span { font-size: 13px; color: var(--muted); }
+.fw-note { margin: 0; padding: 10px 14px 12px; font-size: 12.5px; color: var(--muted); }
 .when { padding: 12px 14px 14px; font-size: 13.5px; }
 .when ul { margin: 6px 0 10px; padding-left: 18px; }
 .when p { margin: 0; color: var(--muted); }
@@ -228,6 +234,12 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
         <section class="card when" id="when"></section>
       </div>
     </div>
+
+    <section class="card fw">
+      <div class="panel-h"><h3>Frameworki dla tego wzorca</h3><small>moduł / API · jak wyraża ten wzorzec</small></div>
+      <div class="fw-grid" id="fw"></div>
+      <p class="fw-note">Każdy z tych wzorców da się też napisać bez frameworka: to kilkadziesiąt linii kodu wokół API modelu. Framework przydaje się, gdy potrzebujesz trwałego stanu, wznawiania, śledzenia i gotowych integracji.</p>
+    </section>
   </main>
 </div>
 
@@ -471,6 +483,13 @@ const PATTERNS = [
   desc: 'Zadanie rozbite na stałą sekwencję kroków — każde wywołanie LLM przetwarza wynik poprzedniego. Programowa bramka sprawdza wynik pośredni i w razie potrzeby odsyła go do poprawki, zanim błąd rozleje się na dalsze etapy.',
   when: ['Zadanie daje się czysto podzielić na stałe etapy.', 'Wynik pośredni można zweryfikować regułami w kodzie.', 'Trafność jest ważniejsza niż opóźnienie.'],
   tradeoff: 'Kroki są sekwencyjne, więc czas rośnie liniowo. W zamian każdy krok jest prostszy, tańszy w testowaniu i łatwiejszy do debugowania.',
+  frameworks: [
+    { name: 'LangChain (LCEL)', api: 'prompt | llm | parser', how: 'Kroki łączy się operatorem | w RunnableSequence; wynik jednego kroku jest wejściem następnego.' },
+    { name: 'LangGraph', api: 'StateGraph + add_conditional_edges', how: 'Każdy krok to węzeł grafu; bramka to krawędź warunkowa, która wraca do węzła konspektu albo idzie dalej.' },
+    { name: 'LlamaIndex Workflows', api: '@step + zdarzenia', how: 'Kroki emitują zdarzenia, a walidacja może wysłać zdarzenie ponownej próby.' },
+    { name: 'Haystack', api: 'Pipeline.connect()', how: 'Komponenty (prompt builder, generator, walidator) łączy się w potok z pętlą poprawek.' },
+    { name: 'DSPy', api: 'dspy.Module, dspy.Assert', how: 'Moduły wywołuje się po kolei; asercje wymuszają ponowienie kroku, gdy reguła nie jest spełniona.' },
+  ],
   extraTitle: 'Postęp łańcucha',
   view: [90, 210],
   nodes: [
@@ -531,6 +550,13 @@ const PATTERNS = [
   desc: 'Tani klasyfikator rozpoznaje intencję zgłoszenia i kieruje je do wyspecjalizowanej ścieżki: dużego modelu z narzędziami, małego modelu do prostych pytań albo — gdy pewność jest za niska — do człowieka.',
   when: ['Wejścia dzielą się na wyraźne kategorie o różnych potrzebach.', 'Proste przypadki można obsłużyć tańszym modelem.', 'Potrzebna jest ścieżka eskalacji do człowieka.'],
   tradeoff: 'Błędna klasyfikacja kieruje zgłoszenie w złe miejsce. Próg pewności reguluje kompromis między automatyzacją a liczbą eskalacji.',
+  frameworks: [
+    { name: 'LangGraph', api: 'add_conditional_edges(router, ...)', how: 'Funkcja routera zwraca nazwę następnego węzła; eskalacja do człowieka przez interrupt().' },
+    { name: 'LangChain', api: 'RunnableBranch', how: 'Lista par warunek → łańcuch, z łańcuchem domyślnym na końcu.' },
+    { name: 'LlamaIndex', api: 'RouterQueryEngine + LLMSingleSelector', how: 'Selektor LLM wybiera silnik zapytań na podstawie opisów narzędzi.' },
+    { name: 'Semantic Router', api: 'Route + RouteLayer', how: 'Routing po podobieństwie embeddingów, bez wywołania LLM. Szybki i tani.' },
+    { name: 'OpenAI Agents SDK', api: 'handoffs=[...]', how: 'Agent „triage” przekazuje rozmowę wyspecjalizowanemu agentowi.' },
+  ],
   extraTitle: 'Statystyki routingu',
   nodes: [
     { id: 'in', label: 'Zgłoszenia', sub: 'kolejka', kind: 'io', x: 85, y: 235 },
@@ -594,6 +620,13 @@ const PATTERNS = [
   desc: 'Kilka wywołań LLM działa jednocześnie, a wyniki są łączone programowo. Sekcjonowanie dzieli zadanie na niezależne części (np. odpowiedź i osobny guardrail); głosowanie uruchamia to samo zadanie kilka razy i bierze większość.',
   when: ['Podzadania są niezależne i można je zrównoleglić dla szybkości.', 'Każdy aspekt (treść, bezpieczeństwo, styl) zasługuje na osobną uwagę.', 'Chcesz zwiększyć pewność decyzji przez wiele głosów.'],
   tradeoff: 'Czas ≈ najwolniejsza gałąź zamiast sumy, ale koszt rośnie z liczbą gałęzi. Głosowanie pomaga tylko, gdy błędy modeli są w miarę niezależne.',
+  frameworks: [
+    { name: 'LangChain', api: 'RunnableParallel', how: 'Uruchamia kilka łańcuchów na tym samym wejściu i zwraca słownik wyników.' },
+    { name: 'LangGraph', api: 'fan-out / fan-in, Send', how: 'Kilka krawędzi z jednego węzła działa równolegle; reducer w stanie scala wyniki.' },
+    { name: 'OpenAI Agents SDK', api: 'input_guardrails', how: 'Guardrail działa równolegle z głównym agentem i może przerwać odpowiedź (tripwire).' },
+    { name: 'NeMo Guardrails / Guardrails AI', api: 'rails, validators', how: 'Gotowe kontrole wejścia i wyjścia: tematy, dane osobowe, toksyczność.' },
+    { name: 'Bez frameworka', api: 'asyncio.gather / Promise.all', how: 'Równoległe wywołania API i zwykłe głosowanie większościowe w kodzie.' },
+  ],
   extraTitle: 'Czas: równolegle vs sekwencyjnie',
   nodes: [
     { id: 'in', label: 'Wejście', sub: '', kind: 'io', x: 80, y: 235 },
@@ -682,6 +715,13 @@ const PATTERNS = [
   desc: 'Centralny LLM sam decyduje, na jakie podzadania rozbić problem — ich liczba i treść nie są znane z góry. Deleguje je do wykonawców, zbiera wyniki, ponawia nieudane i syntetyzuje odpowiedź.',
   when: ['Nie da się przewidzieć podzadań z góry (np. zmiany w wielu plikach).', 'Podzadania są w dużej mierze niezależne.', 'Potrzebna jest synteza wielu częściowych wyników.'],
   tradeoff: 'Elastyczniejsze niż stała równoległość, ale plan orkiestratora może być błędny, a każda runda delegacji dokłada koszt i opóźnienie.',
+  frameworks: [
+    { name: 'LangGraph', api: 'Send API, langgraph-supervisor', how: 'Orkiestrator generuje listę zadań i wysyła każde do węzła-wykonawcy (map-reduce); wariant supervisor zarządza agentami.' },
+    { name: 'CrewAI', api: 'Process.hierarchical', how: 'Agent-menedżer (manager_llm) planuje, deleguje zadania członkom załogi i weryfikuje wyniki.' },
+    { name: 'Microsoft AutoGen', api: 'MagenticOneGroupChat, SelectorGroupChat', how: 'Orkiestrator prowadzi plan i rejestr postępu, wybiera kolejnego agenta i ponawia przy błędach.' },
+    { name: 'Claude Agent SDK', api: 'subagenci (agents)', how: 'Główny agent deleguje podzadania subagentom z własnym kontekstem i narzędziami.' },
+    { name: 'OpenAI Agents SDK', api: 'agent.as_tool()', how: 'Wykonawcy są wystawieni orkiestratorowi jako narzędzia.' },
+  ],
   extraTitle: 'Plan orkiestratora',
   nodes: [
     { id: 'in', label: 'Zadanie', sub: '', kind: 'io', x: 290, y: 55 },
@@ -697,7 +737,7 @@ const PATTERNS = [
     { id: 'task', label: 'Zadanie', type: 'select', value: 'Logowanie przez Google', options: ['Logowanie przez Google', 'Raport: pompy ciepła w PL', 'Lokalizacja dokumentacji'] },
     { id: 'pFail', label: 'Szansa błędu wykonawcy', type: 'range', min: 0, max: 0.6, step: 0.05, value: 0.2, fmt: pct },
   ],
-  prepare() { ['w1', 'w2', 'w3', 'w4'].forEach((id) => { UI.show(id, false); UI.sub(id, 'bezczynny'); }); UI.sub('in', UI.P('task')); },
+  prepare() { ['w1', 'w2', 'w3', 'w4'].forEach((id) => { UI.show(id, false); UI.sub(id, 'bezczynny'); }); UI.sub('in', { 'Logowanie przez Google': 'OAuth Google', 'Raport: pompy ciepła w PL': 'raport rynkowy', 'Lokalizacja dokumentacji': 'docs × 3 języki' }[UI.P('task')]); },
   async run(c) {
     const TASKS = {
       'Logowanie przez Google': { all: ['Backend: endpoint OAuth i callback', 'Frontend: przycisk i przepływ logowania', 'Migracja: tabela tożsamości', 'Testy integracyjne'], short: ['backend', 'frontend', 'migracja DB', 'testy'], min: 3 },
@@ -745,6 +785,13 @@ const PATTERNS = [
   desc: 'Jeden LLM generuje rozwiązanie, drugi ocenia je według jasnych kryteriów i odsyła konkretne uwagi. Pętla trwa, aż ocena przekroczy próg albo skończy się limit iteracji.',
   when: ['Istnieją jasne kryteria oceny.', 'Iteracyjne poprawki wyraźnie podnoszą jakość.', 'Człowiek potrafiłby dać pomocny feedback — LLM też.'],
   tradeoff: 'Każda iteracja to dwa wywołania LLM. Zyski maleją z każdą rundą, więc limit iteracji i próg trzeba dobrać rozsądnie.',
+  frameworks: [
+    { name: 'LangGraph', api: 'pętla generate ⇄ reflect', how: 'Krawędź warunkowa wraca do generatora, dopóki ocena nie przekroczy progu (wzorzec reflection).' },
+    { name: 'DSPy', api: 'dspy.Refine, optymalizatory', how: 'Refine powtarza moduł z funkcją nagrody; optymalizatory (np. MIPROv2) stroją prompty na podstawie metryki.' },
+    { name: 'AutoGen', api: 'RoundRobinGroupChat + TextMentionTermination', how: 'Pisarz i krytyk rozmawiają na zmianę, aż krytyk napisze słowo kończące, np. APPROVE.' },
+    { name: 'Instructor', api: 'max_retries + walidatory Pydantic', how: 'Błędy walidacji wracają do modelu jako uwagi i wymuszają poprawioną odpowiedź.' },
+    { name: 'Ewaluacja offline', api: 'LLM-as-a-judge', how: 'Ten sam ewaluator służy do testów: promptfoo, DeepEval, Ragas, LangSmith.' },
+  ],
   extraTitle: 'Oceny kolejnych wersji',
   view: [140, 190],
   nodes: [
@@ -818,6 +865,14 @@ const PATTERNS = [
   desc: 'LLM w pętli sam decyduje, którego narzędzia użyć, obserwuje wynik i planuje kolejny krok. Kontekst rośnie z każdym krokiem. Błędy narzędzi wymagają adaptacji, budżet kroków chroni przed zapętleniem, a nieodwracalne akcje wymagają zgody człowieka.',
   when: ['Problem jest otwarty — nie da się z góry ustalić ścieżki.', 'Środowisko daje wiarygodną informację zwrotną (wyniki narzędzi).', 'Można zaufać modelowi w ramach budżetu i z kontrolą człowieka.'],
   tradeoff: 'Największa elastyczność, ale też najwyższy i najmniej przewidywalny koszt oraz ryzyko kumulacji błędów. Wymaga sandboxa, limitów i punktów kontrolnych.',
+  frameworks: [
+    { name: 'LangGraph', api: 'create_react_agent, interrupt()', how: 'Gotowa pętla agenta z narzędziami; interrupt() zatrzymuje graf do decyzji człowieka, a checkpointer zapisuje stan.' },
+    { name: 'Claude Agent SDK', api: 'query(), hooks, canUseTool', how: 'Pętla agenta z wbudowanymi narzędziami i MCP; hooki i uprawnienia blokują lub zatwierdzają akcje.' },
+    { name: 'OpenAI Agents SDK', api: 'Agent + Runner.run, max_turns', how: 'Runner prowadzi pętlę narzędzi; max_turns ogranicza liczbę kroków.' },
+    { name: 'LlamaIndex', api: 'ReActAgent, FunctionAgent', how: 'Klasyczny ReAct (myśl → akcja → obserwacja) albo natywne wywołania funkcji.' },
+    { name: 'smolagents', api: 'CodeAgent, ToolCallingAgent', how: 'Agent zapisuje akcje jako kod Pythona albo JSON; max_steps jako budżet.' },
+    { name: 'Model Context Protocol', api: 'serwery MCP', how: 'Standard podłączania narzędzi (wyszukiwarka, pamięć, API) do dowolnego z powyższych.' },
+  ],
   extraTitle: 'Stan agenta',
   nodes: [
     { id: 'user', label: 'Użytkownik', sub: 'zleca i zatwierdza', kind: 'human', x: 100, y: 235 },
@@ -972,6 +1027,7 @@ function selectPattern(id) {
   $('#pName').textContent = S.pattern.name;
   $('#pDesc').textContent = S.pattern.desc;
   $('#extraTitle').textContent = S.pattern.extraTitle || 'Stan';
+  $('#fw').innerHTML = (S.pattern.frameworks || []).map((f) => `<div class="fw-item"><b>${esc(f.name)}</b><code>${esc(f.api)}</code><span>${esc(f.how)}</span></div>`).join('');
   $('#when').innerHTML = `<h4>Kiedy stosować</h4><ul>${S.pattern.when.map((w) => `<li>${esc(w)}</li>`).join('')}</ul><h4>Kompromis</h4><p>${esc(S.pattern.tradeoff)}</p>`;
   renderParams(S.pattern);
   resetSim();
