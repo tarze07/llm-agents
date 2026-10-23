@@ -121,6 +121,28 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .when ul { margin: 6px 0 10px; padding-left: 18px; }
 .when p { margin: 0; color: var(--muted); }
 .when h4 { margin: 0; font-size: 13px; }
+[hidden] { display: none !important; }
+nav.patterns button.guide-btn .n { color: var(--accent); }
+.g-body { padding: 12px 14px 14px; font-size: 14px; }
+.g-body > :first-child { margin-top: 0; } .g-body > :last-child { margin-bottom: 0; }
+.g-body p { margin: 0 0 10px; max-width: 90ch; }
+.g-body h4 { margin: 14px 0 6px; font-size: 14px; }
+.g-body ol, .g-body ul { margin: 0 0 10px; padding-left: 20px; }
+.g-body li { margin: 4px 0; }
+.g-body code { font-family: var(--mono); font-size: 12.5px; background: var(--io-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.g-body .muted { color: var(--muted); font-size: 13px; }
+.g-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.g-wrap { overflow-x: auto; }
+.g-table th, .g-table td { text-align: left; vertical-align: top; padding: 9px 14px; border-top: 1px solid var(--line); }
+.g-table thead th { border-top: 0; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.g-table td:first-child { color: var(--muted); width: 22%; }
+.g-table td { min-width: 180px; }
+.code { position: relative; margin: 6px 0 12px; }
+.code pre { margin: 0; padding: 12px 14px; padding-right: 76px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.code .copy { position: absolute; top: 6px; right: 6px; padding: 3px 9px; font-size: 12px; }
+.g-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 7px; border-radius: 4px; background: var(--gate-soft); color: var(--gate); vertical-align: 2px; margin-left: 6px; }
+.g-body a { color: var(--llm); }
 
 /* SVG */
 .edge { fill: none; stroke: var(--line-strong); stroke-width: 1.6; }
@@ -181,7 +203,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 <div class="layout">
   <nav class="patterns" id="nav" role="tablist" aria-label="Wzorce"></nav>
 
-  <main>
+  <main id="sim">
     <section class="card intro">
       <h2 id="pName"></h2>
       <p id="pDesc"></p>
@@ -240,6 +262,154 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
       <div class="fw-grid" id="fw"></div>
       <p class="fw-note">Każdy z tych wzorców da się też napisać bez frameworka: to kilkadziesiąt linii kodu wokół API modelu. Framework przydaje się, gdy potrzebujesz trwałego stanu, wznawiania, śledzenia i gotowych integracji.</p>
     </section>
+  </main>
+
+  <main id="guide" hidden>
+    <section class="card intro">
+      <h2>Praca wieloagentowa: Claude Code i Antigravity</h2>
+      <p>W Antigravity (<code>agy</code>) zespół agentów uruchamia komenda <code>/teamwork-preview</code>: dynamiczny zespół subagentów w tle planuje, implementuje i weryfikuje zadanie równolegle. Odpowiednikiem w Claude Code są <b>Agent Teams</b> — sesja-lider tworzy współpracowników (teammates), dzieli pracę przez wspólną listę zadań, a agenci wymieniają się wiadomościami. W praktyce to wzorzec „orkiestrator i wykonawcy” z zakładki 04, tylko uruchomiony na prawdziwych agentach.</p>
+    </section>
+
+    <section class="card">
+      <div class="panel-h"><h3>Co czemu odpowiada</h3><small>Antigravity → Claude Code</small></div>
+      <div class="g-wrap">
+        <table class="g-table">
+          <thead><tr><th>Element</th><th>Antigravity (agy)</th><th>Claude Code</th></tr></thead>
+          <tbody>
+            <tr><td>Uruchomienie zespołu</td><td><code>/teamwork-preview &lt;cel&gt;</code></td><td>Prośba w języku naturalnym („Utwórz zespół 4 agentów…”) po włączeniu Agent Teams; własną komendę <code>/teamwork</code> dodasz plikiem w <code>.claude/commands/</code> (niżej)</td></tr>
+            <tr><td>Kto koordynuje</td><td>Zespół sam dzieli cel na kamienie milowe</td><td>Główna sesja jest liderem: tworzy zadania, przydziela je i składa wyniki</td></tr>
+            <tr><td>Weryfikacja</td><td>Wbudowani agenci weryfikujący</td><td>Osobny teammate-recenzent oraz hooki <code>TaskCompleted</code> / <code>TeammateIdle</code> (kod wyjścia 2 cofa agenta do pracy)</td></tr>
+            <tr><td>Lżejszy wariant</td><td><code>/boost</code> — kilku subagentów w izolowanych worktree</td><td>Subagenci (narzędzie Agent, definicje w <code>.claude/agents/</code>) albo kilka sesji na osobnych git worktree</td></tr>
+            <tr><td>Reguły projektu</td><td><code>AGENTS.md</code> (oraz starsze <code>GEMINI.md</code>)</td><td><code>CLAUDE.md</code> — każdy teammate wczytuje go sam, razem z MCP i skillami</td></tr>
+            <tr><td>Komunikacja</td><td>Agenci koordynują się w tle</td><td>Wspólna lista zadań (pending → in progress → completed, z zależnościami) i skrzynki wiadomości między agentami</td></tr>
+            <tr><td>Dostępność</td><td>Wersja preview, plany płatne</td><td>Funkcja eksperymentalna, wyłączona domyślnie; Claude Code ≥ 2.1.32, tylko sesja interaktywna (nie <code>-p</code>)</td></tr>
+            <tr><td>Koszt</td><td>Zużywa dużo tokenów</td><td>Każdy teammate to osobna instancja Claude — koszt rośnie liniowo z liczbą agentów</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="g-cols">
+      <section class="card">
+        <div class="panel-h"><h3>Claude Code: krok po kroku</h3><small>Agent Teams<span class="badge">EKSPERYMENTALNE</span></small></div>
+        <div class="g-body">
+          <h4>1. Sprawdź wersję</h4>
+          <div class="code"><pre id="c-ver">claude --version   # wymagane 2.1.32 lub nowsze
+claude update</pre><button class="btn copy" type="button" data-copy="c-ver">Kopiuj</button></div>
+          <h4>2. Włącz Agent Teams</h4>
+          <p>W <code>~/.claude/settings.json</code> (dla wszystkich projektów) albo <code>.claude/settings.json</code> (dla repozytorium):</p>
+          <div class="code"><pre id="c-env">{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}</pre><button class="btn copy" type="button" data-copy="c-env">Kopiuj</button></div>
+          <p class="muted">Jednorazowo wystarczy: <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude</code></p>
+          <h4>3. (Opcjonalnie) każdy agent w osobnym panelu</h4>
+          <p>Domyślnie wszyscy działają w jednym terminalu (<code>in-process</code>). Panele wymagają tmux albo iTerm2 z CLI <code>it2</code>:</p>
+          <div class="code"><pre id="c-mode">tmux new -s zespol
+claude --teammate-mode auto     # albo w settings.json: "teammateMode": "auto"</pre><button class="btn copy" type="button" data-copy="c-mode">Kopiuj</button></div>
+          <h4>4. Zatwierdź z góry typowe komendy</h4>
+          <p>Prośby o uprawnienia od wszystkich agentów trafiają do lidera, więc dopisz reguły <code>permissions.allow</code> (np. <code>"Bash(npm test *)"</code>), zanim uruchomisz zespół.</p>
+          <h4>5. Uruchom zespół</h4>
+          <p>Uruchom <code>claude</code> w katalogu projektu i opisz zadanie oraz role. Najlepiej wydziel każdemu agentowi osobne pliki:</p>
+          <div class="code"><pre id="c-prompt">Utwórz zespół agentów do migracji API z Express na Fastify:
+- "planista": rozpisz plan i listę zadań z zależnościami, nie edytuj kodu,
+- "backend": przenieś trasy z src/routes/,
+- "testy": przepisz testy w tests/ i dopilnuj pokrycia,
+- "recenzent": po każdym zadaniu uruchom testy i odrzuć pracę, która ich nie przechodzi.
+Użyj Sonnet dla wykonawców. Każdy agent pracuje tylko na swoich plikach.
+Poczekaj, aż wszyscy skończą, i podsumuj wynik.</pre><button class="btn copy" type="button" data-copy="c-prompt">Kopiuj</button></div>
+          <h4>6. Steruj zespołem</h4>
+          <ul>
+            <li><code>↑</code> / <code>↓</code> w panelu agentów — wybór agenta, <code>Enter</code> — podgląd i rozmowa z nim bezpośrednio,</li>
+            <li><code>Esc</code> — powrót (w podglądzie: przerywa bieżącą turę agenta), <code>x</code> — zatrzymanie wybranego agenta,</li>
+            <li><code>Ctrl+T</code> — wspólna lista zadań,</li>
+            <li>tryb planu (<code>Shift+Tab</code>) przed utworzeniem zespołu — agenci najpierw planują tylko do odczytu.</li>
+          </ul>
+          <h4>7. Zakończ</h4>
+          <p>Poproś lidera: „Poproś agenta recenzent o zakończenie pracy”. Katalogi zespołu (<code>~/.claude/teams/</code>) są sprzątane automatycznie po zamknięciu sesji.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="panel-h"><h3>Antigravity: krok po kroku</h3><small>/teamwork-preview<span class="badge">PREVIEW</span></small></div>
+        <div class="g-body">
+          <h4>1. Zainstaluj i zaloguj się</h4>
+          <p>Antigravity CLI (<code>agy</code>) zastąpiło Gemini CLI. Na Windows: <code>winget install Google.AntigravityCLI</code>; na macOS i Linux skrypt instalacyjny z dokumentacji. Przy pierwszym uruchomieniu <code>agy</code> otwiera logowanie Google w przeglądarce. Komenda działa też w aplikacji desktopowej i webowej Antigravity 2.0.</p>
+          <h4>2. Przygotuj reguły projektu</h4>
+          <p>Konwencje, komendy testów i granice modułów opisz w <code>AGENTS.md</code> — z niego korzystają wszyscy agenci zespołu.</p>
+          <h4>3. Uruchom zespół</h4>
+          <div class="code"><pre id="a-tw">agy
+&gt; /teamwork-preview Migrate our REST API from Express to Fastify,
+  including full test coverage, TypeScript typing and benchmark validation.</pre><button class="btn copy" type="button" data-copy="a-tw">Kopiuj</button></div>
+          <p>Zespół dzieli cel na kamienie milowe, implementuje je równolegle i niezależnie weryfikuje. Postęp śledzisz w rozmowie albo w menedżerze agentów.</p>
+          <h4>4. Lżejsza alternatywa</h4>
+          <p><code>/boost</code> uruchamia kilku subagentów (implementacja, analiza, weryfikacja) w izolowanych worktree — to coś pomiędzy pojedynczym agentem a pełnym zespołem.</p>
+          <p class="muted">Funkcja jest w wersji preview i bywa bardzo kosztowna w tokenach; szczegóły mogą się zmieniać — sprawdzaj <a href="https://antigravity.google/docs" target="_blank" rel="noopener">dokumentację Antigravity</a>.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="panel-h"><h3>Własna komenda /teamwork w Claude Code</h3><small>najbliższy odpowiednik /teamwork-preview</small></div>
+      <div class="g-body">
+        <p>Claude Code nie ma wbudowanej komendy do zespołu, ale wystarczy zapisać prompt jako komendę projektu. Utwórz plik <code>.claude/commands/teamwork.md</code>, a potem wpisuj <code>/teamwork &lt;cel&gt;</code> — tak samo jak w Antigravity.</p>
+        <div class="code"><pre id="c-cmd">---
+description: Uruchom zespół agentów (plan → implementacja → weryfikacja) dla podanego celu
+argument-hint: &lt;cel zadania&gt;
+---
+Zrealizuj cel jako lider zespołu agentów (Agent Teams): $ARGUMENTS
+
+1. Przeanalizuj repozytorium i rozpisz cel na 5–15 zadań na wspólnej liście,
+   z zależnościami między nimi.
+2. Utwórz 3–5 agentów o jasno rozdzielonych rolach i plikach, np. "backend",
+   "frontend", "testy". W poleceniu startowym podaj każdemu pełny kontekst:
+   cel, jego zadania, pliki, których może dotykać, i komendę testów.
+3. Dodaj agenta "recenzent", który weryfikuje każde ukończone zadanie
+   (testy, lint, przegląd diffu) i odsyła je do poprawki, gdy coś nie działa.
+4. Nie implementuj sam — czekaj na agentów, odpowiadaj na ich pytania
+   i przydzielaj kolejne zadania.
+5. Na końcu zamknij agentów i podsumuj: co zrobiono, co zostało, wyniki testów.</pre><button class="btn copy" type="button" data-copy="c-cmd">Kopiuj</button></div>
+        <h4>Bramka jakości jak w Antigravity</h4>
+        <p>Hook <code>TaskCompleted</code> nie pozwoli oznaczyć zadania jako ukończone, dopóki testy nie przejdą (kod wyjścia 2 odsyła agentowi informację zwrotną). Dopisz w <code>.claude/settings.json</code>:</p>
+        <div class="code"><pre id="c-hook">{
+  "hooks": {
+    "TaskCompleted": [
+      { "hooks": [ { "type": "command", "command": "npm test 1&gt;&amp;2 || exit 2" } ] }
+    ]
+  }
+}</pre><button class="btn copy" type="button" data-copy="c-hook">Kopiuj</button></div>
+      </div>
+    </section>
+
+    <div class="g-cols">
+      <section class="card">
+        <div class="panel-h"><h3>Dobre praktyki</h3></div>
+        <div class="g-body">
+          <ul>
+            <li>Zacznij od 3–5 agentów i 5–6 zadań na agenta; trzech skupionych agentów zwykle wygrywa z pięcioma rozproszonymi.</li>
+            <li>Każdy agent ma własne pliki — dwóch agentów edytujących ten sam plik nadpisuje sobie zmiany.</li>
+            <li>Agenci nie widzą historii rozmowy lidera: wszystko, czego potrzebują, wpisz w polecenie startowe albo w <code>CLAUDE.md</code>.</li>
+            <li>Na początek wybieraj badania i przeglądy (review PR, porównanie bibliotek, debugowanie kilku hipotez), a dopiero potem równoległą implementację.</li>
+            <li>Gdy lider zaczyna pracować sam: „Poczekaj, aż agenci skończą swoje zadania”.</li>
+            <li>Role używane wielokrotnie (np. <code>security-reviewer</code>) zdefiniuj w <code>.claude/agents/</code> i przywołuj po nazwie.</li>
+          </ul>
+        </div>
+      </section>
+      <section class="card">
+        <div class="panel-h"><h3>Ograniczenia Agent Teams</h3></div>
+        <div class="g-body">
+          <ul>
+            <li><code>/resume</code> i <code>/rewind</code> nie przywracają agentów działających w jednym terminalu — po wznowieniu poproś o nowych.</li>
+            <li>Jeden zespół na sesję, bez zespołów zagnieżdżonych; lidera nie da się zmienić.</li>
+            <li>Status zadań bywa opóźniony — zablokowane zadanie sprawdź ręcznie albo poproś lidera o ponaglenie agenta.</li>
+            <li>Panele nie działają w terminalu VS Code, Windows Terminal ani Ghostty (tryb in-process działa wszędzie).</li>
+            <li>Gdy wolisz zwykłych subagentów, ustaw <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS</code> na <code>"0"</code>.</li>
+          </ul>
+          <p class="muted">Źródła: <a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener">dokumentacja Claude Code — Agent Teams</a>, <a href="https://x.com/antigravity/status/2076720528937611363" target="_blank" rel="noopener">ogłoszenie Agent Teams w Antigravity</a>. Stan na październik 2026.</p>
+        </div>
+      </section>
+    </div>
   </main>
 </div>
 
@@ -1021,9 +1191,27 @@ async function start(step = false) {
   }
 }
 
+const GUIDE_ID = 'teamwork';
+const isView = (id) => id === GUIDE_ID || PATTERNS.some((p) => p.id === id);
+function remember(id) {
+  try { localStorage.setItem('agent-sim-pattern', id); } catch (e) { /* brak dostępu */ }
+  try { if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id); } catch (e) { /* ramka bez historii */ }
+}
+function markNav(id) { document.querySelectorAll('nav.patterns button').forEach((b) => b.setAttribute('aria-selected', b.dataset.id === id)); }
+function showGuide() {
+  if (S.pattern) resetSim();
+  S.view = GUIDE_ID;
+  markNav(GUIDE_ID);
+  $('#sim').hidden = true; $('#guide').hidden = false;
+  remember(GUIDE_ID);
+}
+
 function selectPattern(id) {
+  if (id === GUIDE_ID) { showGuide(); return; }
+  S.view = 'sim';
+  $('#sim').hidden = false; $('#guide').hidden = true;
   S.pattern = PATTERNS.find((p) => p.id === id) || PATTERNS[0];
-  document.querySelectorAll('nav.patterns button').forEach((b) => b.setAttribute('aria-selected', b.dataset.id === S.pattern.id));
+  markNav(S.pattern.id);
   $('#pName').textContent = S.pattern.name;
   $('#pDesc').textContent = S.pattern.desc;
   $('#extraTitle').textContent = S.pattern.extraTitle || 'Stan';
@@ -1031,8 +1219,7 @@ function selectPattern(id) {
   $('#when').innerHTML = `<h4>Kiedy stosować</h4><ul>${S.pattern.when.map((w) => `<li>${esc(w)}</li>`).join('')}</ul><h4>Kompromis</h4><p>${esc(S.pattern.tradeoff)}</p>`;
   renderParams(S.pattern);
   resetSim();
-  try { localStorage.setItem('agent-sim-pattern', S.pattern.id); } catch (e) { /* brak dostępu */ }
-  try { if (location.hash.slice(1) !== S.pattern.id) history.replaceState(null, '', '#' + S.pattern.id); } catch (e) { /* ramka bez historii */ }
+  remember(S.pattern.id);
 }
 
 function buildNav() {
@@ -1052,7 +1239,25 @@ function buildNav() {
     b.onclick = () => selectPattern(p.id);
     nav.appendChild(b);
   });
+  const g = document.createElement('div');
+  g.className = 'group';
+  g.textContent = 'W praktyce';
+  nav.appendChild(g);
+  const b = document.createElement('button');
+  b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.id = GUIDE_ID; b.className = 'guide-btn';
+  b.innerHTML = '<span class="n">→</span><span class="t">Praca wieloagentowa</span><span class="kind">Claude Code · Antigravity /teamwork</span>';
+  b.onclick = () => selectPattern(GUIDE_ID);
+  nav.appendChild(b);
 }
+
+document.querySelectorAll('.copy').forEach((btn) => {
+  btn.onclick = async () => {
+    const text = document.getElementById(btn.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); btn.textContent = 'Skopiowano'; }
+    catch (e) { btn.textContent = 'Zaznacz ręcznie'; }
+    setTimeout(() => { btn.textContent = 'Kopiuj'; }, 1500);
+  };
+});
 
 $('#playBtn').onclick = () => {
   if (!S.running) { start(false); return; }
@@ -1067,7 +1272,7 @@ $('#speed').oninput = (e) => { S.speed = +e.target.value; $('#speedV').textConte
 $('#diceBtn').onclick = () => { $('#seed').value = 1 + Math.floor(Math.random() * 9999); onParam(); };
 $('#seed').onchange = onParam;
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $('#playBtn').click(); }
+  if (e.code === 'Space' && S.view !== GUIDE_ID && !/INPUT|SELECT|BUTTON|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $('#playBtn').click(); }
 });
 
 const themes = ['auto', 'light', 'dark'];
@@ -1083,9 +1288,9 @@ applyTheme();
 
 buildNav();
 let initial = location.hash.slice(1);
-if (!PATTERNS.some((p) => p.id === initial)) { try { initial = localStorage.getItem('agent-sim-pattern'); } catch (e) { initial = null; } }
+if (!isView(initial)) { try { initial = localStorage.getItem('agent-sim-pattern'); } catch (e) { initial = null; } }
 selectPattern(initial || PATTERNS[0].id);
-window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id !== S.pattern.id && PATTERNS.some((p) => p.id === id)) selectPattern(id); });
+window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (isView(id) && id !== (S.view === GUIDE_ID ? GUIDE_ID : S.pattern.id)) selectPattern(id); });
 </script>
 </body>
 </html>
