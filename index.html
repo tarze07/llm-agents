@@ -135,8 +135,10 @@ nav.patterns button.guide-btn .n { color: var(--accent); }
 .g-wrap { overflow-x: auto; }
 .g-table th, .g-table td { text-align: left; vertical-align: top; padding: 9px 14px; border-top: 1px solid var(--line); }
 .g-table thead th { border-top: 0; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-.g-table td:first-child { color: var(--muted); width: 22%; }
+.g-table td:first-child { color: var(--muted); width: 14%; }
 .g-table td { min-width: 180px; }
+.g-table td:first-child { min-width: 120px; }
+.g-body h3 { margin: 4px 0 8px; font-size: 15px; }
 .code { position: relative; margin: 6px 0 12px; }
 .code pre { margin: 0; padding: 12px 14px; padding-right: 76px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .code .copy { position: absolute; top: 6px; right: 6px; padding: 3px 9px; font-size: 12px; }
@@ -266,24 +268,24 @@ nav.patterns button.guide-btn .n { color: var(--accent); }
 
   <main id="guide" hidden>
     <section class="card intro">
-      <h2>Praca wieloagentowa: Claude Code i Antigravity</h2>
-      <p>W Antigravity (<code>agy</code>) zespół agentów uruchamia komenda <code>/teamwork-preview</code>: dynamiczny zespół subagentów w tle planuje, implementuje i weryfikuje zadanie równolegle. Odpowiednikiem w Claude Code są <b>Agent Teams</b> — sesja-lider tworzy współpracowników (teammates), dzieli pracę przez wspólną listę zadań, a agenci wymieniają się wiadomościami. W praktyce to wzorzec „orkiestrator i wykonawcy” z zakładki 04, tylko uruchomiony na prawdziwych agentach.</p>
+      <h2>Praca wieloagentowa: Claude Code, Antigravity i Kilo Code</h2>
+      <p>W Antigravity (<code>agy</code>) zespół agentów uruchamia komenda <code>/teamwork-preview</code>: dynamiczny zespół subagentów w tle planuje, implementuje i weryfikuje zadanie równolegle. Odpowiednikiem w Claude Code są <b>Agent Teams</b> — sesja-lider tworzy współpracowników (teammates), dzieli pracę przez wspólną listę zadań, a agenci wymieniają się wiadomościami. W praktyce to wzorzec „orkiestrator i wykonawcy” z zakładki 04, tylko uruchomiony na prawdziwych agentach. W <b>Kilo Code</b> agent główny sam deleguje pracę subagentom narzędziem <code>task</code>, a <b>Agent Manager</b> uruchamia równoległe sesje w osobnych git worktree.</p>
     </section>
 
     <section class="card">
-      <div class="panel-h"><h3>Co czemu odpowiada</h3><small>Antigravity → Claude Code</small></div>
+      <div class="panel-h"><h3>Co czemu odpowiada</h3><small>Antigravity → Claude Code → Kilo Code</small></div>
       <div class="g-wrap">
         <table class="g-table">
-          <thead><tr><th>Element</th><th>Antigravity (agy)</th><th>Claude Code</th></tr></thead>
+          <thead><tr><th>Element</th><th>Antigravity (agy)</th><th>Claude Code</th><th>Kilo Code</th></tr></thead>
           <tbody>
-            <tr><td>Uruchomienie zespołu</td><td><code>/teamwork-preview &lt;cel&gt;</code></td><td>Prośba w języku naturalnym („Utwórz zespół 4 agentów…”) po włączeniu Agent Teams; własną komendę <code>/teamwork</code> dodasz plikiem w <code>.claude/commands/</code> (niżej)</td></tr>
-            <tr><td>Kto koordynuje</td><td>Zespół sam dzieli cel na kamienie milowe</td><td>Główna sesja jest liderem: tworzy zadania, przydziela je i składa wyniki</td></tr>
-            <tr><td>Weryfikacja</td><td>Wbudowani agenci weryfikujący</td><td>Osobny teammate-recenzent oraz hooki <code>TaskCompleted</code> / <code>TeammateIdle</code> (kod wyjścia 2 cofa agenta do pracy)</td></tr>
-            <tr><td>Lżejszy wariant</td><td><code>/boost</code> — kilku subagentów w izolowanych worktree</td><td>Subagenci (narzędzie Agent, definicje w <code>.claude/agents/</code>) albo kilka sesji na osobnych git worktree</td></tr>
-            <tr><td>Reguły projektu</td><td><code>AGENTS.md</code> (oraz starsze <code>GEMINI.md</code>)</td><td><code>CLAUDE.md</code> — każdy teammate wczytuje go sam, razem z MCP i skillami</td></tr>
-            <tr><td>Komunikacja</td><td>Agenci koordynują się w tle</td><td>Wspólna lista zadań (pending → in progress → completed, z zależnościami) i skrzynki wiadomości między agentami</td></tr>
-            <tr><td>Dostępność</td><td>Wersja preview, plany płatne</td><td>Funkcja eksperymentalna, wyłączona domyślnie; Claude Code ≥ 2.1.32, tylko sesja interaktywna (nie <code>-p</code>)</td></tr>
-            <tr><td>Koszt</td><td>Zużywa dużo tokenów</td><td>Każdy teammate to osobna instancja Claude — koszt rośnie liniowo z liczbą agentów</td></tr>
+            <tr><td>Uruchomienie zespołu</td><td><code>/teamwork-preview &lt;cel&gt;</code></td><td>Prośba w języku naturalnym („Utwórz zespół 4 agentów…”) po włączeniu Agent Teams; własną komendę <code>/teamwork</code> dodasz plikiem w <code>.claude/commands/</code> (niżej)</td><td>Agenci Code, Plan i Debug sami delegują subagentów narzędziem <code>task</code>; własnego lidera <code>teamwork</code> dodasz plikiem w <code>.kilo/agents/</code> (niżej)</td></tr>
+            <tr><td>Kto koordynuje</td><td>Zespół sam dzieli cel na kamienie milowe</td><td>Główna sesja jest liderem: tworzy zadania, przydziela je i składa wyniki</td><td>Bieżący agent główny: deleguje do <code>general</code> (praca autonomiczna) i <code>explore</code> (analiza kodu, tylko odczyt), wyniki wracają do niego</td></tr>
+            <tr><td>Weryfikacja</td><td>Wbudowani agenci weryfikujący</td><td>Osobny teammate-recenzent oraz hooki <code>TaskCompleted</code> / <code>TeammateIdle</code> (kod wyjścia 2 cofa agenta do pracy)</td><td>Własny subagent-recenzent (<code>mode: subagent</code>, <code>edit: deny</code>) wywoływany automatycznie albo przez <code>@recenzent</code></td></tr>
+            <tr><td>Lżejszy wariant</td><td><code>/boost</code> — kilku subagentów w izolowanych worktree</td><td>Subagenci (narzędzie Agent, definicje w <code>.claude/agents/</code>) albo kilka sesji na osobnych git worktree</td><td>Agent Manager: sesje w osobnych worktree (<code>.kilo/worktrees/</code>), Multi-Version — do 4 wersji jednego promptu</td></tr>
+            <tr><td>Reguły projektu</td><td><code>AGENTS.md</code> (oraz starsze <code>GEMINI.md</code>)</td><td><code>CLAUDE.md</code> — każdy teammate wczytuje go sam, razem z MCP i skillami</td><td><code>AGENTS.md</code>; agenci w <code>kilo.jsonc</code> i <code>.kilo/agents/*.md</code></td></tr>
+            <tr><td>Komunikacja</td><td>Agenci koordynują się w tle</td><td>Wspólna lista zadań (pending → in progress → completed, z zależnościami) i skrzynki wiadomości między agentami</td><td>Wynik subagenta wraca do agenta głównego; Kilo Swarm — wspólna tablica ustaleń (domyślnie włączona, <code>shared_agent_board</code>)</td></tr>
+            <tr><td>Dostępność</td><td>Wersja preview, plany płatne</td><td>Funkcja eksperymentalna, wyłączona domyślnie; Claude Code ≥ 2.1.32, tylko sesja interaktywna (nie <code>-p</code>)</td><td>Open source: rozszerzenie VS Code i JetBrains oraz CLI <code>kilo</code>; Agent Manager w VS Code</td></tr>
+            <tr><td>Koszt</td><td>Zużywa dużo tokenów</td><td>Każdy teammate to osobna instancja Claude — koszt rośnie liniowo z liczbą agentów</td><td>Tokeny wybranego dostawcy; subagentom można przypisać tańszy model (pole <code>model</code>)</td></tr>
           </tbody>
         </table>
       </div>
@@ -351,6 +353,75 @@ Poczekaj, aż wszyscy skończą, i podsumuj wynik.</pre><button class="btn copy"
     </div>
 
     <section class="card">
+      <div class="panel-h"><h3>Kilo Code: krok po kroku</h3><small>subagenci + Agent Manager</small></div>
+      <div class="g-body">
+        <p>Kilo Code nie ma osobnej komendy zespołu. Tryb Orchestrator jest wycofywany: agenci Code, Plan i Debug sami delegują podzadania subagentom. Masz dwie drogi: <b>subagentów</b> (szybko, ale wspólny katalog roboczy) albo <b>Agent Manager</b> (równoległe sesje, każda w osobnym worktree i gałęzi).</p>
+        <div class="g-cols">
+          <div>
+            <h3>A. Zespół subagentów — odpowiednik /teamwork</h3>
+            <h4>1. Zainstaluj Kilo</h4>
+            <p>Rozszerzenie Kilo Code z marketplace VS Code lub JetBrains albo CLI:</p>
+            <div class="code"><pre id="k-cli">npm install -g @kilocode/cli
+kilo</pre><button class="btn copy" type="button" data-copy="k-cli">Kopiuj</button></div>
+            <h4>2. Dodaj subagenta-recenzenta</h4>
+            <p>Plik <code>.kilo/agents/recenzent.md</code> — nazwa pliku to nazwa agenta, treść to jego prompt:</p>
+            <div class="code"><pre id="k-rev">---
+description: Weryfikuje ukończone zadania — testy, lint i przegląd diffu
+mode: subagent
+permission:
+  edit: deny
+  bash:
+    "*": ask
+    "npm test*": allow
+    "git diff*": allow
+---
+Jesteś recenzentem. Uruchom testy, przejrzyj diff i zwróć listę problemów z oceną ważności. Jeśli testy nie przechodzą, napisz wprost: ODRZUCONE.</pre><button class="btn copy" type="button" data-copy="k-rev">Kopiuj</button></div>
+            <h4>3. Dodaj agenta-lidera <code>teamwork</code></h4>
+            <p>Plik <code>.kilo/agents/teamwork.md</code> — agent główny, który tylko planuje i deleguje:</p>
+            <div class="code"><pre id="k-lead">---
+description: Lider zespołu — dzieli cel na zadania i deleguje je subagentom
+mode: primary
+---
+Jesteś liderem zespołu agentów. Dla celu podanego przez użytkownika:
+1. Zbadaj kod przez subagenta "explore" i rozpisz plan zadań.
+2. Niezależne zadania deleguj narzędziem task do subagentów "general", równolegle. Każdemu podaj pełny kontekst i listę plików, których może dotykać — subagenci pracują w tym samym katalogu, pliki nie mogą się pokrywać.
+3. Po każdym zadaniu wywołaj subagenta "recenzent"; odrzucone zadanie odeślij do poprawki.
+4. Sam nie edytuj kodu. Na końcu podsumuj: co zrobiono, co zostało, wyniki testów.</pre><button class="btn copy" type="button" data-copy="k-lead">Kopiuj</button></div>
+            <h4>4. Uruchom</h4>
+            <ul>
+              <li>CLI: uruchom <code>kilo</code>, klawiszem <code>Tab</code> przełącz na agenta <code>teamwork</code> i wpisz cel; <code>kilo agent list</code> pokaże, czy agenci się wczytali,</li>
+              <li>VS Code / JetBrains: wybierz agenta <code>teamwork</code> w selektorze agentów w panelu Kilo,</li>
+              <li>ręcznie: <code>@recenzent przejrzyj zmiany w src/auth</code>.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>B. Agent Manager — równolegle w worktree</h3>
+            <h4>1. Otwórz Agent Manager</h4>
+            <p><code>Ctrl+Shift+M</code> (macOS: <code>Cmd+Shift+M</code>) albo z palety: „Kilo Code: Open Agent Manager”. Wymaga repozytorium git otwartego w VS Code (głównego, nie worktree).</p>
+            <h4>2. Przygotuj worktree</h4>
+            <p>Pliki <code>.env</code> z katalogu głównego kopiują się same. Zależności zainstaluje skrypt <code>.kilo/setup-script</code>, uruchamiany przy każdym nowym worktree:</p>
+            <div class="code"><pre id="k-setup">#!/usr/bin/env bash
+# dostępne zmienne: WORKTREE_PATH, REPO_PATH
+cd "$WORKTREE_PATH" &amp;&amp; npm ci</pre><button class="btn copy" type="button" data-copy="k-setup">Kopiuj</button></div>
+            <h4>3. Uruchom agentów</h4>
+            <ul>
+              <li><code>Ctrl+N</code> — nowy worktree (osobna gałąź) z własną sesją; <code>Ctrl+T</code> — kolejna sesja w tym samym worktree (np. recenzent obok autora),</li>
+              <li><b>Multi-Version</b> — ten sam prompt w maksymalnie 4 worktree naraz, wybierasz najlepszą wersję,</li>
+              <li>z czatu przez narzędzie <code>agent_manager</code> — do 20 zadań w jednej prośbie:</li>
+            </ul>
+            <div class="code"><pre id="k-am">Użyj agent_manager i uruchom 3 sesje w trybie worktree:
+1) backend: przenieś trasy z src/routes/ na Fastify,
+2) testy: przepisz testy w tests/ pod Fastify,
+3) docs: zaktualizuj README i przykłady API.</pre><button class="btn copy" type="button" data-copy="k-am">Kopiuj</button></div>
+            <h4>4. Przejrzyj i scal</h4>
+            <p><code>Ctrl+D</code> pokazuje diff worktree względem gałęzi bazowej. Zmiany przeniesiesz przyciskiem „Apply to local” albo przez panel PR (wymaga zalogowanego <code>gh</code>). Konflikty rozwiąże „Fix with Kilo”.</p>
+          </div>
+        </div>
+        <p class="muted">Ograniczenia: subagenci z narzędzia <code>task</code> nie tworzą worktree — przy równoległej edycji używaj Agent Managera. Każdy worktree to pełna kopia repozytorium (zależności i build zajmują miejsce wielokrotnie). Subagenci działają nieinteraktywnie i nie zadają pytań użytkownikowi.</p>
+      </div>
+    </section>
+
+    <section class="card">
       <div class="panel-h"><h3>Własna komenda /teamwork w Claude Code</h3><small>najbliższy odpowiednik /teamwork-preview</small></div>
       <div class="g-body">
         <p>Claude Code nie ma wbudowanej komendy do zespołu, ale wystarczy zapisać prompt jako komendę projektu. Utwórz plik <code>.claude/commands/teamwork.md</code>, a potem wpisuj <code>/teamwork &lt;cel&gt;</code> — tak samo jak w Antigravity.</p>
@@ -406,7 +477,7 @@ Zrealizuj cel jako lider zespołu agentów (Agent Teams): $ARGUMENTS
             <li>Panele nie działają w terminalu VS Code, Windows Terminal ani Ghostty (tryb in-process działa wszędzie).</li>
             <li>Gdy wolisz zwykłych subagentów, ustaw <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS</code> na <code>"0"</code>.</li>
           </ul>
-          <p class="muted">Źródła: <a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener">dokumentacja Claude Code — Agent Teams</a>, <a href="https://x.com/antigravity/status/2076720528937611363" target="_blank" rel="noopener">ogłoszenie Agent Teams w Antigravity</a>. Stan na październik 2026.</p>
+          <p class="muted">Źródła: <a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener">dokumentacja Claude Code — Agent Teams</a>, <a href="https://x.com/antigravity/status/2076720528937611363" target="_blank" rel="noopener">ogłoszenie Agent Teams w Antigravity</a>, dokumentacja Kilo Code: <a href="https://kilo.ai/docs/customize/custom-subagents" target="_blank" rel="noopener">subagenci</a> i <a href="https://kilo.ai/docs/automate/agent-manager" target="_blank" rel="noopener">Agent Manager</a>. Stan na październik 2026.</p>
         </div>
       </section>
     </div>
@@ -1245,7 +1316,7 @@ function buildNav() {
   nav.appendChild(g);
   const b = document.createElement('button');
   b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.id = GUIDE_ID; b.className = 'guide-btn';
-  b.innerHTML = '<span class="n">→</span><span class="t">Praca wieloagentowa</span><span class="kind">Claude Code · Antigravity /teamwork</span>';
+  b.innerHTML = '<span class="n">→</span><span class="t">Praca wieloagentowa</span><span class="kind">Claude Code · Antigravity · Kilo Code</span>';
   b.onclick = () => selectPattern(GUIDE_ID);
   nav.appendChild(b);
 }

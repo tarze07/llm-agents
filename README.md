@@ -21,5 +21,5 @@ Otwórz `index.html` w przeglądarce (albo włącz GitHub Pages dla tego repozyt
 - parametry każdego wzorca (prawdopodobieństwa błędów, progi, limity), ziarno losowości dla powtarzalności,
 - sterowanie: start / pauza (spacja), praca krokowa, prędkość 0,25–4×,
 - karta „Frameworki dla tego wzorca”: LangChain, LangGraph, LlamaIndex, CrewAI, AutoGen, DSPy, Claude Agent SDK, OpenAI Agents SDK i inne — z konkretnym API realizującym dany wzorzec,
-- zakładka „Praca wieloagentowa”: jak uruchomić zespół agentów w Claude Code (Agent Teams) i w Antigravity (`/teamwork-preview`), tabela odpowiedników, gotowy prompt, własna komenda `/teamwork` dla Claude Code i hook bramki jakości,
+- zakładka „Praca wieloagentowa”: jak uruchomić zespół agentów w Claude Code (Agent Teams), w Antigravity (`/teamwork-preview`) i w Kilo Code (subagenci i Agent Manager), tabela odpowiedników, gotowe prompty, własna komenda `/teamwork` dla Claude Code, agent `teamwork` dla Kilo i hook bramki jakości,
 - motyw jasny / ciemny, układ responsywny.
